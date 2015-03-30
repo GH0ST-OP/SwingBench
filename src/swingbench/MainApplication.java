@@ -8,6 +8,9 @@ package swingbench;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 /**
  *
@@ -41,7 +44,7 @@ public class MainApplication extends javax.swing.JFrame {
     }
     
     public boolean connectToServer() {
-        Connection conn = null;
+        conn = null;
         Statement stmt = null;
         try{
             //STEP 2: Register JDBC driver
@@ -75,7 +78,6 @@ public class MainApplication extends javax.swing.JFrame {
             //STEP 6: Clean-up environment
 //            rs.close();
             stmt.close();
-            conn.close();
             return true;
             }catch(SQLException se){
             //Handle errors for JDBC
@@ -90,15 +92,28 @@ public class MainApplication extends javax.swing.JFrame {
                   stmt.close();
             }catch(SQLException se2){
             }// nothing we can do
-            try{
-               if(conn!=null)
-                  conn.close();
-            }catch(SQLException se){
-               se.printStackTrace();
-            }//end finally try
-            }//end try
+//            try{
+//               if(conn!=null)
+//                  conn.close();
+//            }catch(SQLException se){
+//               se.printStackTrace();
+//            }//end finally try
+//            }//end try
+        }
 
         return false;
+    }
+    
+    private void getDatabaseList() throws SQLException{
+        System.out.println(conn);
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode();
+        
+        DatabaseMetaData dbmd = conn.getMetaData();
+        ResultSet ctlgs = dbmd.getCatalogs();
+        while(ctlgs.next()) {
+            System.out.println("ctlgs  =  "+ctlgs.getString(1));
+//            schemaTree.add()
+        }
     }
 
     /**
@@ -117,18 +132,22 @@ public class MainApplication extends javax.swing.JFrame {
         dialog_username = new javax.swing.JTextField();
         jLabel3 = new javax.swing.JLabel();
         dialog_password = new javax.swing.JPasswordField();
-        jButton1 = new javax.swing.JButton();
+        connectButton = new javax.swing.JButton();
         dialog_error_label = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        debugPane = new javax.swing.JTextPane();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        schemaTree = new javax.swing.JTree();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenuItem1 = new javax.swing.JMenuItem();
         jMenuItem2 = new javax.swing.JMenuItem();
-        jMenuItem3 = new javax.swing.JMenuItem();
+        jMenu_exitButton = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
 
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
-        connectionDialog.setMaximumSize(new java.awt.Dimension(437, 152));
         connectionDialog.setMinimumSize(new java.awt.Dimension(437, 152));
 
         jLabel1.setText("IP:Port");
@@ -152,10 +171,10 @@ public class MainApplication extends javax.swing.JFrame {
 
         dialog_password.setText("password");
 
-        jButton1.setText("Connect");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        connectButton.setText("Connect");
+        connectButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                connectButtonActionPerformed(evt);
             }
         });
 
@@ -171,7 +190,7 @@ public class MainApplication extends javax.swing.JFrame {
                     .addGroup(connectionDialogLayout.createSequentialGroup()
                         .addComponent(dialog_error_label)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton1))
+                        .addComponent(connectButton))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, connectionDialogLayout.createSequentialGroup()
                         .addComponent(jLabel3)
                         .addGap(0, 0, Short.MAX_VALUE))
@@ -208,12 +227,18 @@ public class MainApplication extends javax.swing.JFrame {
                     .addComponent(dialog_password, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 18, Short.MAX_VALUE)
                 .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
+                    .addComponent(connectButton)
                     .addComponent(dialog_error_label))
                 .addContainerGap())
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jScrollPane1.setViewportView(debugPane);
+
+        jScrollPane2.setViewportView(schemaTree);
+
+        jScrollPane3.setViewportView(jScrollPane2);
 
         jMenu1.setText("File");
 
@@ -228,8 +253,13 @@ public class MainApplication extends javax.swing.JFrame {
         jMenuItem2.setText("Disconnect");
         jMenu1.add(jMenuItem2);
 
-        jMenuItem3.setText("Exit");
-        jMenu1.add(jMenuItem3);
+        jMenu_exitButton.setText("Exit");
+        jMenu_exitButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenu_exitButtonActionPerformed(evt);
+            }
+        });
+        jMenu1.add(jMenu_exitButton);
 
         jMenuBar1.add(jMenu1);
 
@@ -242,14 +272,21 @@ public class MainApplication extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 566, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 279, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 363, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         pack();
+        setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
     private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
@@ -264,7 +301,7 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_dialog_usernameActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
         dialog_error_label.setText("");
         db_url = "jdbc:mysql://" + dialog_url.getText();
         db_username = dialog_username.getText();
@@ -274,8 +311,18 @@ public class MainApplication extends javax.swing.JFrame {
         } else {
             connectionDialog.setVisible(false);
             this.setVisible(true);
+            debugPane.setText("Connected to: " + db_url);
+            try {
+                getDatabaseList();
+            } catch (SQLException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }//GEN-LAST:event_connectButtonActionPerformed
+
+    private void jMenu_exitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu_exitButtonActionPerformed
+        System.exit(0);
+    }//GEN-LAST:event_jMenu_exitButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -313,12 +360,13 @@ public class MainApplication extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton connectButton;
     private javax.swing.JDialog connectionDialog;
+    private javax.swing.JTextPane debugPane;
     private javax.swing.JLabel dialog_error_label;
     private javax.swing.JPasswordField dialog_password;
     private javax.swing.JTextField dialog_url;
     private javax.swing.JTextField dialog_username;
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -327,6 +375,10 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JMenuItem jMenuItem2;
-    private javax.swing.JMenuItem jMenuItem3;
+    private javax.swing.JMenuItem jMenu_exitButton;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JTree schemaTree;
     // End of variables declaration//GEN-END:variables
 }
