@@ -7,9 +7,13 @@ package swingbench;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
 import java.sql.*;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 /**
@@ -38,7 +42,6 @@ public class MainApplication extends javax.swing.JFrame {
         int iWidth = (screenSize.width - connectionDialog.getWidth()) / 2;
         int iHeight = (screenSize.height - connectionDialog.getHeight()) / 2;
         connectionDialog.setLocation(iWidth, iHeight);
-        
         
         connectionDialog.setVisible(true);
     }
@@ -114,6 +117,47 @@ public class MainApplication extends javax.swing.JFrame {
             System.out.println("ctlgs  =  "+ctlgs.getString(1));
 //            schemaTree.add()
         }
+        
+        updateTable();
+    }
+    
+    private void updateTable() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from ShadowKeep.player");
+        System.out.println(rs);
+//        JTable updated = new JTable(buildTableModel(rs));
+//        selectedTable = updated;
+        
+        selectedTable.setModel(buildTableModel(rs));
+    }
+    
+    public static DefaultTableModel buildTableModel(ResultSet rs) 
+            throws SQLException {
+
+    ResultSetMetaData metaData = rs.getMetaData();
+    System.out.println(metaData);
+
+    // names of columns
+    Vector<String> columnNames = new Vector<>();
+    int columnCount = metaData.getColumnCount();
+    for (int column = 1; column <= columnCount; column++) {
+        columnNames.add(metaData.getColumnName(column));
+        System.out.println(metaData.getColumnName(column));
+    }
+
+    // data of the table
+    Vector<Vector<Object>> data = new Vector<>();
+    while (rs.next()) {
+        Vector<Object> vector = new Vector<>();
+        for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+            vector.add(rs.getObject(columnIndex));
+            System.out.println(rs.getObject(columnIndex));
+        }
+        data.add(vector);
+    }
+
+    return new DefaultTableModel(data, columnNames);
+
     }
 
     /**
@@ -139,6 +183,8 @@ public class MainApplication extends javax.swing.JFrame {
         jScrollPane3 = new javax.swing.JScrollPane();
         jScrollPane2 = new javax.swing.JScrollPane();
         schemaTree = new javax.swing.JTree();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        selectedTable = new javax.swing.JTable();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenuItem1 = new javax.swing.JMenuItem();
@@ -149,6 +195,11 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
         connectionDialog.setMinimumSize(new java.awt.Dimension(437, 152));
+        connectionDialog.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                connectionDialogKeyPressed(evt);
+            }
+        });
 
         jLabel1.setText("IP:Port");
 
@@ -233,12 +284,31 @@ public class MainApplication extends javax.swing.JFrame {
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setPreferredSize(new java.awt.Dimension(600, 540));
 
+        debugPane.setEditable(false);
+        debugPane.setAutoscrolls(false);
         jScrollPane1.setViewportView(debugPane);
 
         jScrollPane2.setViewportView(schemaTree);
 
         jScrollPane3.setViewportView(jScrollPane2);
+
+        jScrollPane4.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+
+        selectedTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        selectedTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        jScrollPane4.setViewportView(selectedTable);
 
         jMenu1.setText("File");
 
@@ -272,15 +342,18 @@ public class MainApplication extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 566, Short.MAX_VALUE)
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 658, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane4))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 363, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jScrollPane3)
+                    .addComponent(jScrollPane4))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
@@ -323,6 +396,15 @@ public class MainApplication extends javax.swing.JFrame {
     private void jMenu_exitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu_exitButtonActionPerformed
         System.exit(0);
     }//GEN-LAST:event_jMenu_exitButtonActionPerformed
+
+    private void connectionDialogKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_connectionDialogKeyPressed
+        // TODO add your handling code here:
+        if (evt.getID() == KeyEvent.KEY_PRESSED) {
+            if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                connectButton.doClick();
+            }
+        }
+    }//GEN-LAST:event_connectionDialogKeyPressed
 
     /**
      * @param args the command line arguments
@@ -379,6 +461,8 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JTree schemaTree;
+    private javax.swing.JTable selectedTable;
     // End of variables declaration//GEN-END:variables
 }
