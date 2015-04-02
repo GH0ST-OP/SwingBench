@@ -6,15 +6,22 @@
 package swingbench;
 
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Toolkit;
+import java.io.IOException;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.*;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.JTree;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 
 /**
  *
@@ -28,6 +35,7 @@ public class MainApplication extends javax.swing.JFrame {
     String db_password;
     Connection conn;
     
+    private DefaultTreeModel model;
 
     /**
      * Creates new form MainApplication
@@ -109,54 +117,74 @@ public class MainApplication extends javax.swing.JFrame {
     
     private void getDatabaseList() throws SQLException{
         System.out.println(conn);
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode();
-        
-        DatabaseMetaData dbmd = conn.getMetaData();
-        ResultSet ctlgs = dbmd.getCatalogs();
-        while(ctlgs.next()) {
-            System.out.println("ctlgs  =  "+ctlgs.getString(1));
-//            schemaTree.add()
+        DefaultMutableTreeNode MySQL = new DefaultMutableTreeNode("MySQL");
+        DatabaseMetaData md = conn.getMetaData();
+        ResultSet db = md.getCatalogs();
+        while(db.next()) {
+            System.out.println("db  =  "+db.getString(1));
+            DefaultMutableTreeNode database = new DefaultMutableTreeNode(db.getString(1));
+            MySQL.add(database);
+            String[] types = {"TABLE"};
+            ResultSet tbl = md.getTables(db.getString(1), null, "%", types);
+            boolean emptySet = true;
+            while(tbl.next()) {
+                emptySet = false;
+                System.out.println("--tbl = "+tbl.getString("TABLE_NAME"));
+                DefaultMutableTreeNode table = new DefaultMutableTreeNode(tbl.getString("TABLE_NAME"));
+                database.add(table);
+            }
+            if (emptySet)
+                database.add(new DefaultMutableTreeNode("(no tables visible)"));
+            tbl.close();
         }
-        
-        updateTable();
+        db.close();
+        JTree root = new JTree(MySQL);
+        root.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent me) {
+                try {
+                    updateTable("","");
+                } catch (SQLException ex) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+        model = (DefaultTreeModel) root.getModel();
+        schemaTree.setModel(model); 
     }
     
-    private void updateTable() throws SQLException {
+    private void updateTable(String db, String tbl) throws SQLException {
         Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from ShadowKeep.player");
+        ResultSet rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
         System.out.println(rs);
-//        JTable updated = new JTable(buildTableModel(rs));
-//        selectedTable = updated;
-        
         selectedTable.setModel(buildTableModel(rs));
     }
     
     public static DefaultTableModel buildTableModel(ResultSet rs) 
             throws SQLException {
 
-    ResultSetMetaData metaData = rs.getMetaData();
-    System.out.println(metaData);
+        ResultSetMetaData metaData = rs.getMetaData();
+        System.out.println(metaData);
 
-    // names of columns
-    Vector<String> columnNames = new Vector<>();
-    int columnCount = metaData.getColumnCount();
-    for (int column = 1; column <= columnCount; column++) {
-        columnNames.add(metaData.getColumnName(column));
-        System.out.println(metaData.getColumnName(column));
-    }
-
-    // data of the table
-    Vector<Vector<Object>> data = new Vector<>();
-    while (rs.next()) {
-        Vector<Object> vector = new Vector<>();
-        for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
-            vector.add(rs.getObject(columnIndex));
-            System.out.println(rs.getObject(columnIndex));
+        // names of columns
+        Vector<String> columnNames = new Vector<>();
+        int columnCount = metaData.getColumnCount();
+        for (int column = 1; column <= columnCount; column++) {
+            columnNames.add(metaData.getColumnName(column));
+            System.out.println(metaData.getColumnName(column));
         }
-        data.add(vector);
-    }
 
-    return new DefaultTableModel(data, columnNames);
+        // data of the table
+        Vector<Vector<Object>> data = new Vector<>();
+        while (rs.next()) {
+            Vector<Object> vector = new Vector<>();
+            for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+                vector.add(rs.getObject(columnIndex));
+                System.out.println(rs.getObject(columnIndex));
+            }
+            data.add(vector);
+        }
+
+        return new DefaultTableModel(data, columnNames);
 
     }
 
@@ -187,8 +215,7 @@ public class MainApplication extends javax.swing.JFrame {
         selectedTable = new javax.swing.JTable();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
-        jMenuItem1 = new javax.swing.JMenuItem();
-        jMenuItem2 = new javax.swing.JMenuItem();
+        jMenu_disconnectButton = new javax.swing.JMenuItem();
         jMenu_exitButton = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
 
@@ -312,16 +339,13 @@ public class MainApplication extends javax.swing.JFrame {
 
         jMenu1.setText("File");
 
-        jMenuItem1.setText("Connect to Database");
-        jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
+        jMenu_disconnectButton.setText("Disconnect");
+        jMenu_disconnectButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jMenuItem1ActionPerformed(evt);
+                jMenu_disconnectButtonActionPerformed(evt);
             }
         });
-        jMenu1.add(jMenuItem1);
-
-        jMenuItem2.setText("Disconnect");
-        jMenu1.add(jMenuItem2);
+        jMenu1.add(jMenu_disconnectButton);
 
         jMenu_exitButton.setText("Exit");
         jMenu_exitButton.addActionListener(new java.awt.event.ActionListener() {
@@ -362,10 +386,6 @@ public class MainApplication extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jMenuItem1ActionPerformed
-
     private void dialog_urlActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dialog_urlActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_dialog_urlActionPerformed
@@ -405,6 +425,19 @@ public class MainApplication extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_connectionDialogKeyPressed
+
+    private void jMenu_disconnectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu_disconnectButtonActionPerformed
+        db_url = "";
+        db_username = "";
+        db_password = "";
+        try {
+            conn.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        this.setVisible(false);
+        connectionDialog.setVisible(true);
+    }//GEN-LAST:event_jMenu_disconnectButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -455,8 +488,7 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
-    private javax.swing.JMenuItem jMenuItem1;
-    private javax.swing.JMenuItem jMenuItem2;
+    private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
