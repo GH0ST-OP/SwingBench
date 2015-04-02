@@ -16,12 +16,16 @@ import java.sql.*;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import javax.imageio.ImageIO;
+import javax.swing.JCheckBox;
 import javax.swing.JTree;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 
 /**
  *
@@ -30,18 +34,24 @@ import javax.swing.tree.DefaultTreeModel;
 public class MainApplication extends javax.swing.JFrame {
     
     static final String JDBC_DRIVER = "com.mysql.jdbc.Driver"; 
-    String db_url;
-    String db_username;
-    String db_password;
-    Connection conn;
+    private String db_url;
+    private String db_username;
+    private String db_password;
+    private Connection conn;
+    
     
     private DefaultTreeModel model;
+    
+    private Preferences prefs;
 
     /**
      * Creates new form MainApplication
      */
     public MainApplication() {
         initComponents();
+        prefs = Preferences.userRoot().node(this.getClass().getName());
+        
+        checkForPref();
         
         connectionDialog.setPreferredSize(new Dimension(440, 200));//set your desired size
         connectionDialog.pack();
@@ -52,6 +62,18 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setLocation(iWidth, iHeight);
         
         connectionDialog.setVisible(true);
+    }
+    
+    private void checkForPref() {
+        if (prefs.getBoolean("RememberMe", false)) {
+            //set values in connectionDialog
+            dialog_url.setText(prefs.get("Url", ""));
+            dialog_username.setText(prefs.get("Username", ""));
+            dialog_password.setText(prefs.get("Password", ""));
+            rememberMeCheckBox.setSelected(true);
+        } else {
+            System.out.println("Preferences could not be read.");
+        }
     }
     
     public boolean connectToServer() {
@@ -138,16 +160,8 @@ public class MainApplication extends javax.swing.JFrame {
             tbl.close();
         }
         db.close();
+        
         JTree root = new JTree(MySQL);
-        root.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent me) {
-                try {
-                    updateTable("","");
-                } catch (SQLException ex) {
-                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        });
         model = (DefaultTreeModel) root.getModel();
         schemaTree.setModel(model); 
     }
@@ -206,15 +220,15 @@ public class MainApplication extends javax.swing.JFrame {
         dialog_password = new javax.swing.JPasswordField();
         connectButton = new javax.swing.JButton();
         dialog_error_label = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
+        rememberMeCheckBox = new javax.swing.JCheckBox();
+        debugScrollPane = new javax.swing.JScrollPane();
         debugPane = new javax.swing.JTextPane();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        jScrollPane2 = new javax.swing.JScrollPane();
+        schemaScrollPane = new javax.swing.JScrollPane();
         schemaTree = new javax.swing.JTree();
-        jScrollPane4 = new javax.swing.JScrollPane();
+        tableScrollPane = new javax.swing.JScrollPane();
         selectedTable = new javax.swing.JTable();
-        jLabel5 = new javax.swing.JLabel();
-        jMenuBar1 = new javax.swing.JMenuBar();
+        debugConsoleLabel = new javax.swing.JLabel();
+        mainMenuBar = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenu_disconnectButton = new javax.swing.JMenuItem();
         jMenu_exitButton = new javax.swing.JMenuItem();
@@ -222,7 +236,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
-        connectionDialog.setMinimumSize(new java.awt.Dimension(437, 152));
+        connectionDialog.setMinimumSize(new java.awt.Dimension(418, 225));
         connectionDialog.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 connectionDialogKeyPressed(evt);
@@ -237,6 +251,11 @@ public class MainApplication extends javax.swing.JFrame {
                 dialog_urlActionPerformed(evt);
             }
         });
+        dialog_url.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                dialog_urlKeyPressed(evt);
+            }
+        });
 
         jLabel2.setText("Username:");
 
@@ -245,10 +264,20 @@ public class MainApplication extends javax.swing.JFrame {
                 dialog_usernameActionPerformed(evt);
             }
         });
+        dialog_username.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                dialog_usernameKeyPressed(evt);
+            }
+        });
 
         jLabel3.setText("Password:");
 
         dialog_password.setText("password");
+        dialog_password.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                dialog_passwordKeyPressed(evt);
+            }
+        });
 
         connectButton.setText("Connect");
         connectButton.addActionListener(new java.awt.event.ActionListener() {
@@ -259,6 +288,8 @@ public class MainApplication extends javax.swing.JFrame {
 
         dialog_error_label.setForeground(java.awt.Color.red);
 
+        rememberMeCheckBox.setText("Remember Login?");
+
         javax.swing.GroupLayout connectionDialogLayout = new javax.swing.GroupLayout(connectionDialog.getContentPane());
         connectionDialog.getContentPane().setLayout(connectionDialogLayout);
         connectionDialogLayout.setHorizontalGroup(
@@ -266,48 +297,50 @@ public class MainApplication extends javax.swing.JFrame {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, connectionDialogLayout.createSequentialGroup()
                 .addGap(40, 40, 40)
                 .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(connectionDialogLayout.createSequentialGroup()
-                        .addComponent(dialog_error_label)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(connectButton))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, connectionDialogLayout.createSequentialGroup()
                         .addComponent(jLabel3)
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, connectionDialogLayout.createSequentialGroup()
                         .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel1)
-                            .addComponent(jLabel2))
+                            .addComponent(jLabel2)
+                            .addComponent(dialog_error_label))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 22, Short.MAX_VALUE)
                         .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, connectionDialogLayout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 21, Short.MAX_VALUE)
-                                .addComponent(dialog_url, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, Short.MAX_VALUE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, connectionDialogLayout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(dialog_password)
-                                    .addComponent(dialog_username, javax.swing.GroupLayout.DEFAULT_SIZE, 130, Short.MAX_VALUE))))))
-                .addGap(63, 63, 63))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(dialog_password)
+                                .addComponent(dialog_username, javax.swing.GroupLayout.DEFAULT_SIZE, 130, Short.MAX_VALUE))
+                            .addComponent(dialog_url, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, connectionDialogLayout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(rememberMeCheckBox)
+                        .addGap(56, 56, 56)
+                        .addComponent(connectButton)))
+                .addGap(41, 41, 41))
         );
         connectionDialogLayout.setVerticalGroup(
             connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(connectionDialogLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(dialog_url, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(dialog_username, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(dialog_password, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 18, Short.MAX_VALUE)
+                .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(connectionDialogLayout.createSequentialGroup()
+                        .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel1)
+                            .addComponent(dialog_url, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel2)
+                            .addComponent(dialog_username, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3)
+                            .addComponent(dialog_password, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(31, 31, 31))
+                    .addComponent(dialog_error_label))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 16, Short.MAX_VALUE)
                 .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(connectButton)
-                    .addComponent(dialog_error_label))
+                    .addComponent(rememberMeCheckBox))
                 .addContainerGap())
         );
 
@@ -318,13 +351,16 @@ public class MainApplication extends javax.swing.JFrame {
 
         debugPane.setEditable(false);
         debugPane.setMinimumSize(new java.awt.Dimension(2147483647, 2147483647));
-        jScrollPane1.setViewportView(debugPane);
+        debugScrollPane.setViewportView(debugPane);
 
-        jScrollPane2.setViewportView(schemaTree);
+        schemaTree.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                schemaTreeMouseClicked(evt);
+            }
+        });
+        schemaScrollPane.setViewportView(schemaTree);
 
-        jScrollPane3.setViewportView(jScrollPane2);
-
-        jScrollPane4.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        tableScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
         selectedTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -338,9 +374,9 @@ public class MainApplication extends javax.swing.JFrame {
             }
         ));
         selectedTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
-        jScrollPane4.setViewportView(selectedTable);
+        tableScrollPane.setViewportView(selectedTable);
 
-        jLabel5.setText("Debug console");
+        debugConsoleLabel.setText("Debug console");
 
         jMenu1.setText("File");
 
@@ -360,34 +396,34 @@ public class MainApplication extends javax.swing.JFrame {
         });
         jMenu1.add(jMenu_exitButton);
 
-        jMenuBar1.add(jMenu1);
+        mainMenuBar.add(jMenu1);
 
         jMenu2.setText("Edit");
-        jMenuBar1.add(jMenu2);
+        mainMenuBar.add(jMenu2);
 
-        setJMenuBar(jMenuBar1);
+        setJMenuBar(mainMenuBar);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(schemaScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane4))
-            .addComponent(jLabel5)
-            .addComponent(jScrollPane1)
+                .addComponent(tableScrollPane))
+            .addComponent(debugConsoleLabel)
+            .addComponent(debugScrollPane)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jScrollPane3)
-                    .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(schemaScrollPane)
+                    .addComponent(tableScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel5)
+                .addComponent(debugConsoleLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(debugScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         pack();
@@ -403,6 +439,21 @@ public class MainApplication extends javax.swing.JFrame {
     }//GEN-LAST:event_dialog_usernameActionPerformed
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
+        
+        //If a user connects with remember me checked, store preferences
+        if (rememberMeCheckBox.isSelected()) {
+            prefs.putBoolean("RememberMe", true);
+            prefs.put("Url", dialog_url.getText());
+            prefs.put("Username", dialog_username.getText());
+            prefs.put("Password", String.valueOf(dialog_password.getPassword()));
+        } else {
+            try {
+                prefs.clear();
+            } catch (BackingStoreException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
         dialog_error_label.setText("");
         db_url = "jdbc:mysql://" + dialog_url.getText();
         db_username = dialog_username.getText();
@@ -447,6 +498,50 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setVisible(true);
     }//GEN-LAST:event_jMenu_disconnectButtonActionPerformed
 
+    private void dialog_urlKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dialog_urlKeyPressed
+        if (evt.getID() == KeyEvent.KEY_PRESSED) {
+            if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                connectButton.doClick();
+            }
+        }
+    }//GEN-LAST:event_dialog_urlKeyPressed
+
+    private void dialog_usernameKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dialog_usernameKeyPressed
+        if (evt.getID() == KeyEvent.KEY_PRESSED) {
+            if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                connectButton.doClick();
+            }
+        }
+    }//GEN-LAST:event_dialog_usernameKeyPressed
+
+    private void dialog_passwordKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dialog_passwordKeyPressed
+        if (evt.getID() == KeyEvent.KEY_PRESSED) {
+            if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                connectButton.doClick();
+            }
+        }
+    }//GEN-LAST:event_dialog_passwordKeyPressed
+
+    private void schemaTreeMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_schemaTreeMouseClicked
+        int selRow = schemaTree.getRowForLocation(evt.getX(), evt.getY());
+        TreePath selPath = schemaTree.getPathForLocation(evt.getX(), evt.getY());
+        if(selRow != -1) {
+            if(evt.getClickCount() == 2) {
+                try {
+                    String db = selPath.getPath()[1].toString();
+                    String tbl = selPath.getPath()[2].toString();
+                                       
+                    updateTable(db,tbl);
+                    System.out.println(selRow);
+                    System.out.println(selPath);
+                    System.out.println(db);
+                } catch (SQLException ex) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+    }//GEN-LAST:event_schemaTreeMouseClicked
+
     /**
      * @param args the command line arguments
      */
@@ -485,7 +580,9 @@ public class MainApplication extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton connectButton;
     private javax.swing.JDialog connectionDialog;
+    private javax.swing.JLabel debugConsoleLabel;
     private javax.swing.JTextPane debugPane;
+    private javax.swing.JScrollPane debugScrollPane;
     private javax.swing.JLabel dialog_error_label;
     private javax.swing.JPasswordField dialog_password;
     private javax.swing.JTextField dialog_url;
@@ -493,17 +590,16 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel5;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
-    private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JScrollPane jScrollPane4;
+    private javax.swing.JMenuBar mainMenuBar;
+    private javax.swing.JCheckBox rememberMeCheckBox;
+    private javax.swing.JScrollPane schemaScrollPane;
     private javax.swing.JTree schemaTree;
     private javax.swing.JTable selectedTable;
+    private javax.swing.JScrollPane tableScrollPane;
     // End of variables declaration//GEN-END:variables
 }
