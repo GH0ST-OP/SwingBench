@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.sql.*;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -20,9 +21,11 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javax.imageio.ImageIO;
 import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
 import javax.swing.JTree;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -221,6 +224,7 @@ public class MainApplication extends javax.swing.JFrame {
         connectButton = new javax.swing.JButton();
         dialog_error_label = new javax.swing.JLabel();
         rememberMeCheckBox = new javax.swing.JCheckBox();
+        fileChooser = new javax.swing.JFileChooser();
         debugScrollPane = new javax.swing.JScrollPane();
         debugPane = new javax.swing.JTextPane();
         schemaScrollPane = new javax.swing.JScrollPane();
@@ -233,6 +237,9 @@ public class MainApplication extends javax.swing.JFrame {
         jMenu_disconnectButton = new javax.swing.JMenuItem();
         jMenu_exitButton = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
+        importSQL = new javax.swing.JMenuItem();
+        importTXT = new javax.swing.JMenuItem();
+        refreshTable = new javax.swing.JMenuItem();
 
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
@@ -344,10 +351,15 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
+        fileChooser.setCurrentDirectory(new File("."));
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("SwingBench");
-        setMinimumSize(new java.awt.Dimension(627, 581));
+        setMinimumSize(new java.awt.Dimension(700, 610));
         setPreferredSize(new java.awt.Dimension(658, 581));
+
+        debugScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        debugScrollPane.setAutoscrolls(true);
 
         debugPane.setEditable(false);
         debugPane.setMinimumSize(new java.awt.Dimension(2147483647, 2147483647));
@@ -399,6 +411,26 @@ public class MainApplication extends javax.swing.JFrame {
         mainMenuBar.add(jMenu1);
 
         jMenu2.setText("Edit");
+
+        importSQL.setText("Import .sql");
+        importSQL.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                importSQLActionPerformed(evt);
+            }
+        });
+        jMenu2.add(importSQL);
+
+        importTXT.setText("Import .txt");
+        importTXT.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                importTXTActionPerformed(evt);
+            }
+        });
+        jMenu2.add(importTXT);
+
+        refreshTable.setText("jMenuItem1");
+        jMenu2.add(refreshTable);
+
         mainMenuBar.add(jMenu2);
 
         setJMenuBar(mainMenuBar);
@@ -525,7 +557,7 @@ public class MainApplication extends javax.swing.JFrame {
     private void schemaTreeMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_schemaTreeMouseClicked
         int selRow = schemaTree.getRowForLocation(evt.getX(), evt.getY());
         TreePath selPath = schemaTree.getPathForLocation(evt.getX(), evt.getY());
-        if(selRow != -1) {
+        if(selRow != -1 && selRow != 0) {
             if(evt.getClickCount() == 2) {
                 try {
                     String db = selPath.getPath()[1].toString();
@@ -541,6 +573,24 @@ public class MainApplication extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_schemaTreeMouseClicked
+
+    private void importSQLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importSQLActionPerformed
+        // TODO add your handling code here:
+        int returnVal = fileChooser.showOpenDialog(null);
+        
+        if (returnVal == JFileChooser.APPROVE_OPTION){
+            File file = fileChooser.getSelectedFile();
+            try {
+                debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
+            } catch (BadLocationException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }//GEN-LAST:event_importSQLActionPerformed
+
+    private void importTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importTXTActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_importTXTActionPerformed
 
     /**
      * @param args the command line arguments
@@ -587,6 +637,9 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JPasswordField dialog_password;
     private javax.swing.JTextField dialog_url;
     private javax.swing.JTextField dialog_username;
+    private javax.swing.JFileChooser fileChooser;
+    private javax.swing.JMenuItem importSQL;
+    private javax.swing.JMenuItem importTXT;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -594,8 +647,8 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
-    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JMenuBar mainMenuBar;
+    private javax.swing.JMenuItem refreshTable;
     private javax.swing.JCheckBox rememberMeCheckBox;
     private javax.swing.JScrollPane schemaScrollPane;
     private javax.swing.JTree schemaTree;
