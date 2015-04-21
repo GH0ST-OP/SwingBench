@@ -13,7 +13,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.sql.*;
+import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -176,6 +179,41 @@ public class MainApplication extends javax.swing.JFrame {
         selectedTable.setModel(buildTableModel(rs));
     }
     
+    public void importSQL(File file) throws SQLException, FileNotFoundException {
+	Scanner s = new Scanner(file);
+	s.useDelimiter("(;(\r)?\n)|(--\n)");
+	Statement stmt = null;
+	try
+	{
+            stmt = conn.createStatement();
+            while (s.hasNext())
+            {
+            	String line = s.next();
+            	if (line.startsWith("/*!") && line.endsWith("*/"))
+            	{
+                    int i = line.indexOf(' ');
+                    line = line.substring(i + 1, line.length() - " */".length());
+		}
+
+		if (line.trim().length() > 0)
+		{
+                    long start_time = System.nanoTime();
+                    stmt.execute(line);
+                    long end_time = System.nanoTime();
+                    double difference = (end_time - start_time)/1e9;
+                    String time = String.format("%.2f", difference);
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nStatement: " + line + "; Execution time:" + time, null);
+		}
+            }
+	}
+        catch (BadLocationException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }	finally
+	{
+		if (stmt != null) stmt.close();
+	}
+}
+    
     public static DefaultTableModel buildTableModel(ResultSet rs) 
             throws SQLException {
 
@@ -244,6 +282,14 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
         connectionDialog.setMinimumSize(new java.awt.Dimension(418, 225));
+        connectionDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosed(java.awt.event.WindowEvent evt) {
+                connectionDialogWindowClosed(evt);
+            }
+            public void windowDeactivated(java.awt.event.WindowEvent evt) {
+                connectionDialogWindowDeactivated(evt);
+            }
+        });
         connectionDialog.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 connectionDialogKeyPressed(evt);
@@ -528,6 +574,7 @@ public class MainApplication extends javax.swing.JFrame {
         }
         this.setVisible(false);
         connectionDialog.setVisible(true);
+        conn = null;
     }//GEN-LAST:event_jMenu_disconnectButtonActionPerformed
 
     private void dialog_urlKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dialog_urlKeyPressed
@@ -582,15 +629,34 @@ public class MainApplication extends javax.swing.JFrame {
             File file = fileChooser.getSelectedFile();
             try {
                 debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
+                importSQL(file);
+                getDatabaseList();
             } catch (BadLocationException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (SQLException ex) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        
     }//GEN-LAST:event_importSQLActionPerformed
 
     private void importTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importTXTActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_importTXTActionPerformed
+
+    private void connectionDialogWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_connectionDialogWindowClosed
+        // TODO add your handling code here:
+//        System.exit(0);
+    }//GEN-LAST:event_connectionDialogWindowClosed
+
+    private void connectionDialogWindowDeactivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_connectionDialogWindowDeactivated
+        // TODO add your handling code here:
+        if (conn == null){
+          System.exit(0);  
+        }      
+    }//GEN-LAST:event_connectionDialogWindowDeactivated
 
     /**
      * @param args the command line arguments
