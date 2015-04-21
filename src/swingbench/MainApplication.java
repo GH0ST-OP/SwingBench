@@ -19,6 +19,7 @@ import java.sql.*;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.Level;
+import static java.util.logging.Level.OFF;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -27,6 +28,11 @@ import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JTree;
 import javax.swing.JTable;
+import static javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS;
+import static javax.swing.JTable.AUTO_RESIZE_OFF;
+import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS;
+import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED;
+import static javax.swing.event.TableModelEvent.ALL_COLUMNS;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -161,12 +167,26 @@ public class MainApplication extends javax.swing.JFrame {
             while (s.hasNext())
             {
             	String line = s.next();
-                line = line + ";"; 
+                line = line + ";";
+                if (line.startsWith("/*!") && line.endsWith("*/"))
+                {
+                    int i = line.indexOf(' ');
+                    line = line.substring(i + 1, line.length() - " */".length());
+                }
 		if (line.trim().length() > 0)
 		{
+                    PreparedStatement pst;
+                    ResultSet rs;
                     long start_time = System.nanoTime();
-                    PreparedStatement pst = (PreparedStatement) conn.prepareStatement(line);
-                    ResultSet rs = pst.executeQuery();
+                    if(line.toLowerCase().startsWith("select") || line.toLowerCase().contains("select")) {
+                        pst = (PreparedStatement) conn.prepareStatement(line);
+                        rs = pst.executeQuery();
+                        if (flag){
+                            customQueryTable.setModel(buildTableModel(rs));
+                        }
+                    }else{
+                        stmt.execute(line);
+                    }
                     long end_time = System.nanoTime();
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
@@ -401,7 +421,7 @@ public class MainApplication extends javax.swing.JFrame {
             })
             {public boolean isCellEditable(int row, int column){return false;}}
         );
-        customQueryTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        customQueryTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_NEXT_COLUMN);
         customQueryTable.setDragEnabled(true);
         jScrollPane1.setViewportView(customQueryTable);
 
