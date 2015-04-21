@@ -165,7 +165,8 @@ public class MainApplication extends javax.swing.JFrame {
 		if (line.trim().length() > 0)
 		{
                     long start_time = System.nanoTime();
-                    stmt.execute(line);
+                    PreparedStatement pst = (PreparedStatement) conn.prepareStatement(line);
+                    ResultSet rs = pst.executeQuery();
                     long end_time = System.nanoTime();
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
@@ -241,7 +242,7 @@ public class MainApplication extends javax.swing.JFrame {
         fileChooser = new javax.swing.JFileChooser();
         queryDialog = new javax.swing.JDialog();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        customQueryTable = new javax.swing.JTable();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jScrollPane3 = new javax.swing.JScrollPane();
@@ -389,7 +390,9 @@ public class MainApplication extends javax.swing.JFrame {
         queryDialog.setMinimumSize(new java.awt.Dimension(571, 500));
         queryDialog.setPreferredSize(new java.awt.Dimension(571, 500));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        jScrollPane1.setAutoscrolls(true);
+
+        customQueryTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null}
             },
@@ -398,9 +401,9 @@ public class MainApplication extends javax.swing.JFrame {
             })
             {public boolean isCellEditable(int row, int column){return false;}}
         );
-        jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
-        jTable1.setDragEnabled(true);
-        jScrollPane1.setViewportView(jTable1);
+        customQueryTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        customQueryTable.setDragEnabled(true);
+        jScrollPane1.setViewportView(customQueryTable);
 
         jLabel4.setText("Query");
 
@@ -808,6 +811,7 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JDialog connectionDialog;
     private javax.swing.JMenuItem customQueryMenuItem;
     private javax.swing.JButton customQuerySubmitButton;
+    private javax.swing.JTable customQueryTable;
     private javax.swing.JLabel debugConsoleLabel;
     private javax.swing.JTextPane debugPane;
     private javax.swing.JScrollPane debugScrollPane;
@@ -833,7 +837,6 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
-    private javax.swing.JTable jTable1;
     private javax.swing.JMenuBar mainMenuBar;
     private javax.swing.JTextPane queryDebugPane;
     private javax.swing.JDialog queryDialog;
