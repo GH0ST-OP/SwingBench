@@ -11,7 +11,6 @@
         </Property>
       </Properties>
       <Events>
-        <EventHandler event="windowClosed" listener="java.awt.event.WindowListener" parameters="java.awt.event.WindowEvent" handler="connectionDialogWindowClosed"/>
         <EventHandler event="windowDeactivated" listener="java.awt.event.WindowListener" parameters="java.awt.event.WindowEvent" handler="connectionDialogWindowDeactivated"/>
         <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="connectionDialogKeyPressed"/>
       </Events>
@@ -309,9 +308,6 @@
       <Properties>
         <Property name="horizontalScrollBarPolicy" type="int" value="32"/>
         <Property name="verticalScrollBarPolicy" type="int" value="22"/>
-        <Property name="viewportView" type="java.awt.Component" editor="org.netbeans.modules.form.ComponentChooserEditor">
-          <ComponentRef name="default"/>
-        </Property>
       </Properties>
 
       <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>

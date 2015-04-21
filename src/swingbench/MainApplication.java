@@ -260,9 +260,6 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setAlwaysOnTop(true);
         connectionDialog.setMinimumSize(new java.awt.Dimension(418, 225));
         connectionDialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            public void windowClosed(java.awt.event.WindowEvent evt) {
-                connectionDialogWindowClosed(evt);
-            }
             public void windowDeactivated(java.awt.event.WindowEvent evt) {
                 connectionDialogWindowDeactivated(evt);
             }
@@ -617,11 +614,7 @@ public class MainApplication extends javax.swing.JFrame {
                 debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
                 importSQL(file);
                 getDatabaseList();
-            } catch (BadLocationException ex) {
-                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (SQLException ex) {
+            } catch (BadLocationException | IOException | SQLException ex) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
@@ -632,7 +625,6 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_importTXTActionPerformed
 
-<<<<<<< HEAD
     private void jMenu_refreshButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu_refreshButtonActionPerformed
         try {
             getDatabaseList();
@@ -641,22 +633,12 @@ public class MainApplication extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jMenu_refreshButtonActionPerformed
 
-    
-    
-=======
-    private void connectionDialogWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_connectionDialogWindowClosed
-        // TODO add your handling code here:
-//        System.exit(0);
-    }//GEN-LAST:event_connectionDialogWindowClosed
-
     private void connectionDialogWindowDeactivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_connectionDialogWindowDeactivated
         // TODO add your handling code here:
         if (conn == null){
           System.exit(0);  
         }      
     }//GEN-LAST:event_connectionDialogWindowDeactivated
-
->>>>>>> aad9eb94ccde17fb1d1d1db3695c2b9257f90bd7
     /**
      * @param args the command line arguments
      */
