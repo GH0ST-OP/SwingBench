@@ -93,26 +93,6 @@ public class MainApplication extends javax.swing.JFrame {
             //STEP 4: Execute a query
             System.out.println("Creating statement...");
             stmt = conn.createStatement();
-            String sql;
-//            sql = "SELECT id, first, last, age FROM Employees";
-//            ResultSet rs = stmt.executeQuery(sql);
-
-            //STEP 5: Extract data from result set
-//            while(rs.next()){
-//               //Retrieve by column name
-//               int id  = rs.getInt("id");
-//               int age = rs.getInt("age");
-//               String first = rs.getString("first");
-//               String last = rs.getString("last");
-//
-//               //Display values
-//               System.out.print("ID: " + id);
-//               System.out.print(", Age: " + age);
-//               System.out.print(", First: " + first);
-//               System.out.println(", Last: " + last);
-//            }
-            //STEP 6: Clean-up environment
-//            rs.close();
             stmt.close();
             return true;
             }catch(SQLException se){
@@ -127,16 +107,8 @@ public class MainApplication extends javax.swing.JFrame {
                if(stmt!=null)
                   stmt.close();
             }catch(SQLException se2){
-            }// nothing we can do
-//            try{
-//               if(conn!=null)
-//                  conn.close();
-//            }catch(SQLException se){
-//               se.printStackTrace();
-//            }//end finally try
-//            }//end try
+            }
         }
-
         return false;
     }
     
@@ -149,7 +121,7 @@ public class MainApplication extends javax.swing.JFrame {
             System.out.println("db  =  "+db.getString(1));
             DefaultMutableTreeNode database = new DefaultMutableTreeNode(db.getString(1));
             MySQL.add(database);
-            String[] types = {"TABLE"};
+            String[] types = {"TABLE", "VIEW"};
             ResultSet tbl = md.getTables(db.getString(1), null, "%", types);
             boolean emptySet = true;
             while(tbl.next()) {
@@ -201,7 +173,11 @@ public class MainApplication extends javax.swing.JFrame {
             data.add(vector);
         }
 
-        return new DefaultTableModel(data, columnNames);
+        return new DefaultTableModel(data, columnNames){
+            public boolean isCellEditable(int row, int column){
+                return false;
+            }
+        };
 
     }
 
@@ -236,6 +212,7 @@ public class MainApplication extends javax.swing.JFrame {
         jMenu1 = new javax.swing.JMenu();
         jMenu_disconnectButton = new javax.swing.JMenuItem();
         jMenu_exitButton = new javax.swing.JMenuItem();
+        jMenu_refreshButton = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
         importSQL = new javax.swing.JMenuItem();
         importTXT = new javax.swing.JMenuItem();
@@ -372,20 +349,21 @@ public class MainApplication extends javax.swing.JFrame {
         });
         schemaScrollPane.setViewportView(schemaTree);
 
+        tableScrollPane.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
         tableScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
         selectedTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
+                "SwingBench!"
+            })
+            {public boolean isCellEditable(int row, int column){return false;}}
+        );
         selectedTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        selectedTable.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        selectedTable.setDragEnabled(true);
         tableScrollPane.setViewportView(selectedTable);
 
         debugConsoleLabel.setText("Debug console");
@@ -407,6 +385,14 @@ public class MainApplication extends javax.swing.JFrame {
             }
         });
         jMenu1.add(jMenu_exitButton);
+
+        jMenu_refreshButton.setText("Refresh");
+        jMenu_refreshButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenu_refreshButtonActionPerformed(evt);
+            }
+        });
+        jMenu1.add(jMenu_refreshButton);
 
         mainMenuBar.add(jMenu1);
 
@@ -442,7 +428,7 @@ public class MainApplication extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addComponent(schemaScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tableScrollPane))
+                .addComponent(tableScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 454, Short.MAX_VALUE))
             .addComponent(debugConsoleLabel)
             .addComponent(debugScrollPane)
         );
@@ -592,6 +578,16 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_importTXTActionPerformed
 
+    private void jMenu_refreshButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu_refreshButtonActionPerformed
+        try {
+            getDatabaseList();
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_jMenu_refreshButtonActionPerformed
+
+    
+    
     /**
      * @param args the command line arguments
      */
@@ -647,6 +643,7 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
+    private javax.swing.JMenuItem jMenu_refreshButton;
     private javax.swing.JMenuBar mainMenuBar;
     private javax.swing.JMenuItem refreshTable;
     private javax.swing.JCheckBox rememberMeCheckBox;
