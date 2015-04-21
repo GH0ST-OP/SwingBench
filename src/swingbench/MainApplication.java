@@ -66,6 +66,7 @@ public class MainApplication extends javax.swing.JFrame {
         int iWidth = (screenSize.width - connectionDialog.getWidth()) / 2;
         int iHeight = (screenSize.height - connectionDialog.getHeight()) / 2;
         connectionDialog.setLocation(iWidth, iHeight);
+        queryDialog.setLocation(iWidth, iHeight);
         
         connectionDialog.setVisible(true);
     }
@@ -151,8 +152,7 @@ public class MainApplication extends javax.swing.JFrame {
         selectedTable.setModel(buildTableModel(rs));
     }
     
-    public void importSQL(File file) throws SQLException, FileNotFoundException {
-	Scanner s = new Scanner(file);
+    public void importSQL(Scanner s) throws SQLException, FileNotFoundException {
 	s.useDelimiter("(;(\r)?\n)|(--\n)");
 	Statement stmt = null;
 	try
@@ -174,7 +174,7 @@ public class MainApplication extends javax.swing.JFrame {
                     long end_time = System.nanoTime();
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
-                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nStatement: " + line + "; Execution time:" + time, null);
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nStatement: " + line + "  Execution time:" + time, null);
 		}
             }
 	}
@@ -239,6 +239,16 @@ public class MainApplication extends javax.swing.JFrame {
         dialog_error_label = new javax.swing.JLabel();
         rememberMeCheckBox = new javax.swing.JCheckBox();
         fileChooser = new javax.swing.JFileChooser();
+        queryDialog = new javax.swing.JDialog();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        jLabel4 = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        queryDebugPane = new javax.swing.JEditorPane();
+        jLabel5 = new javax.swing.JLabel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        queryPane1 = new javax.swing.JEditorPane();
+        customQuerySubmitButton = new javax.swing.JButton();
         debugScrollPane = new javax.swing.JScrollPane();
         debugPane = new javax.swing.JTextPane();
         schemaScrollPane = new javax.swing.JScrollPane();
@@ -255,6 +265,9 @@ public class MainApplication extends javax.swing.JFrame {
         importSQL = new javax.swing.JMenuItem();
         importTXT = new javax.swing.JMenuItem();
         refreshTable = new javax.swing.JMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        customQueryMenuItem = new javax.swing.JMenuItem();
+        jMenuItem2 = new javax.swing.JMenuItem();
 
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
@@ -373,10 +386,76 @@ public class MainApplication extends javax.swing.JFrame {
 
         fileChooser.setCurrentDirectory(new File("."));
 
+        queryDialog.setMinimumSize(new java.awt.Dimension(571, 500));
+        queryDialog.setPreferredSize(new java.awt.Dimension(571, 500));
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null}
+            },
+            new String [] {
+                "Custom Query"
+            })
+            {public boolean isCellEditable(int row, int column){return false;}}
+        );
+        jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        jTable1.setDragEnabled(true);
+        jScrollPane1.setViewportView(jTable1);
+
+        jLabel4.setText("Query");
+
+        queryDebugPane.setEditable(false);
+        jScrollPane2.setViewportView(queryDebugPane);
+
+        jLabel5.setText("Debug console");
+
+        jScrollPane3.setViewportView(queryPane1);
+
+        customQuerySubmitButton.setText("Submit Query");
+        customQuerySubmitButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                customQuerySubmitButtonActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout queryDialogLayout = new javax.swing.GroupLayout(queryDialog.getContentPane());
+        queryDialog.getContentPane().setLayout(queryDialogLayout);
+        queryDialogLayout.setHorizontalGroup(
+            queryDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 571, Short.MAX_VALUE)
+            .addComponent(jScrollPane2)
+            .addComponent(jScrollPane3)
+            .addGroup(queryDialogLayout.createSequentialGroup()
+                .addGroup(queryDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(queryDialogLayout.createSequentialGroup()
+                        .addComponent(jLabel4)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(queryDialogLayout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(customQuerySubmitButton)))
+                .addContainerGap())
+        );
+        queryDialogLayout.setVerticalGroup(
+            queryDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(queryDialogLayout.createSequentialGroup()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel4)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(queryDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(customQuerySubmitButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("SwingBench");
-        setMinimumSize(new java.awt.Dimension(700, 610));
-        setPreferredSize(new java.awt.Dimension(658, 581));
+        setMinimumSize(new java.awt.Dimension(700, 635));
+        setPreferredSize(new java.awt.Dimension(700, 635));
 
         debugScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         debugScrollPane.setAutoscrolls(true);
@@ -462,6 +541,26 @@ public class MainApplication extends javax.swing.JFrame {
 
         mainMenuBar.add(jMenu2);
 
+        jMenu3.setText("Query");
+
+        customQueryMenuItem.setText("Custom Query");
+        customQueryMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                customQueryMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu3.add(customQueryMenuItem);
+
+        jMenuItem2.setText("Query-Builder");
+        jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem2ActionPerformed(evt);
+            }
+        });
+        jMenu3.add(jMenuItem2);
+
+        mainMenuBar.add(jMenu3);
+
         setJMenuBar(mainMenuBar);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -471,7 +570,7 @@ public class MainApplication extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addComponent(schemaScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tableScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 454, Short.MAX_VALUE))
+                .addComponent(tableScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 500, Short.MAX_VALUE))
             .addComponent(debugConsoleLabel)
             .addComponent(debugScrollPane)
         );
@@ -612,7 +711,8 @@ public class MainApplication extends javax.swing.JFrame {
             File file = fileChooser.getSelectedFile();
             try {
                 debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
-                importSQL(file);
+                Scanner s = new Scanner(file);
+                importSQL(s);
                 getDatabaseList();
             } catch (BadLocationException | IOException | SQLException ex) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
@@ -639,6 +739,26 @@ public class MainApplication extends javax.swing.JFrame {
           System.exit(0);  
         }      
     }//GEN-LAST:event_connectionDialogWindowDeactivated
+
+    private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jMenuItem2ActionPerformed
+
+    private void customQueryMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_customQueryMenuItemActionPerformed
+        // TODO add your handling code here:
+        queryDialog.setVisible(true);
+    }//GEN-LAST:event_customQueryMenuItemActionPerformed
+
+    private void customQuerySubmitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_customQuerySubmitButtonActionPerformed
+        try {
+            // TODO add your handling code here:
+            importSQL(new Scanner(queryPane1.getText()));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_customQuerySubmitButtonActionPerformed
     /**
      * @param args the command line arguments
      */
@@ -677,6 +797,8 @@ public class MainApplication extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton connectButton;
     private javax.swing.JDialog connectionDialog;
+    private javax.swing.JMenuItem customQueryMenuItem;
+    private javax.swing.JButton customQuerySubmitButton;
     private javax.swing.JLabel debugConsoleLabel;
     private javax.swing.JTextPane debugPane;
     private javax.swing.JScrollPane debugScrollPane;
@@ -690,12 +812,23 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenu jMenu3;
+    private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
     private javax.swing.JMenuItem jMenu_refreshButton;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JTable jTable1;
     private javax.swing.JMenuBar mainMenuBar;
+    private javax.swing.JEditorPane queryDebugPane;
+    private javax.swing.JDialog queryDialog;
+    private javax.swing.JEditorPane queryPane1;
     private javax.swing.JMenuItem refreshTable;
     private javax.swing.JCheckBox rememberMeCheckBox;
     private javax.swing.JScrollPane schemaScrollPane;
