@@ -152,7 +152,7 @@ public class MainApplication extends javax.swing.JFrame {
         selectedTable.setModel(buildTableModel(rs));
     }
     
-    public void importSQL(Scanner s) throws SQLException, FileNotFoundException {
+    public void importSQL(Scanner s, boolean flag) throws SQLException, FileNotFoundException {
 	s.useDelimiter("(;(\r)?\n)|(--\n)");
 	Statement stmt = null;
 	try
@@ -212,6 +212,7 @@ public class MainApplication extends javax.swing.JFrame {
         }
 
         return new DefaultTableModel(data, columnNames){
+            @Override
             public boolean isCellEditable(int row, int column){
                 return false;
             }
@@ -712,7 +713,7 @@ public class MainApplication extends javax.swing.JFrame {
             try {
                 debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
                 Scanner s = new Scanner(file);
-                importSQL(s);
+                importSQL(s,false);
                 getDatabaseList();
             } catch (BadLocationException | IOException | SQLException ex) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
@@ -752,10 +753,8 @@ public class MainApplication extends javax.swing.JFrame {
     private void customQuerySubmitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_customQuerySubmitButtonActionPerformed
         try {
             // TODO add your handling code here:
-            importSQL(new Scanner(queryPane1.getText()));
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
+            importSQL(new Scanner(queryPane1.getText()),true);
+        } catch (SQLException | FileNotFoundException ex) {
             Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_customQuerySubmitButtonActionPerformed
