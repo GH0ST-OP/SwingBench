@@ -167,22 +167,32 @@ public class MainApplication extends javax.swing.JFrame {
             while (s.hasNext())
             {
             	String line = s.next();
-                line = line + ";";
+                boolean isWhitespace = line.matches("^\\s*$");
                 if (line.startsWith("/*!") && line.endsWith("*/"))
                 {
                     int i = line.indexOf(' ');
                     line = line.substring(i + 1, line.length() - " */".length());
                 }
-		if (line.trim().length() > 0)
+
+		if (line.trim().length() > 0 && !isWhitespace)
 		{
+                    line = line.trim() + ";";
                     PreparedStatement pst;
                     ResultSet rs;
                     long start_time = System.nanoTime();
-                    if(line.toLowerCase().startsWith("select") || line.toLowerCase().contains("select")) {
+                    if(line.toLowerCase().startsWith("select") || line.toLowerCase().startsWith("show")) {
                         pst = (PreparedStatement) conn.prepareStatement(line);
                         rs = pst.executeQuery();
                         if (flag){
                             customQueryTable.setModel(buildTableModel(rs));
+                            
+                            //Set Width Testing
+                            for (int i = 0; i < customQueryTable.getColumnCount(); i++){
+                                int stringLength = customQueryTable.getValueAt(0, i).toString().length();
+                                customQueryTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
+                                customQueryTable.updateUI();
+                            }
+                            
                         }
                     }else{
                         stmt.execute(line);
@@ -191,20 +201,20 @@ public class MainApplication extends javax.swing.JFrame {
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
                     if (flag){
-                        queryDebugPane.getStyledDocument().insertString(queryDebugPane.getStyledDocument().getLength(), "\nStatement: " + line + "  Execution time:" + time, null);
+                        queryDebugPane.getStyledDocument().insertString(queryDebugPane.getStyledDocument().getLength(), "Statement: " + line + "  Execution time:" + time + "\n", null);
                     }else{
-                        debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nStatement: " + line + "  Execution time:" + time, null);
+                        debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Statement: " + line + "  Execution time:" + time + "\n", null);
                     }
                 }
             }
 	}
         catch (BadLocationException ex) {
-            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);           
         }	finally
 	{
 		if (stmt != null) stmt.close();
 	}
-}
+    }
     
     public static DefaultTableModel buildTableModel(ResultSet rs) 
             throws SQLException {
@@ -421,7 +431,7 @@ public class MainApplication extends javax.swing.JFrame {
             })
             {public boolean isCellEditable(int row, int column){return false;}}
         );
-        customQueryTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_NEXT_COLUMN);
+        customQueryTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
         customQueryTable.setDragEnabled(true);
         jScrollPane1.setViewportView(customQueryTable);
 
@@ -651,7 +661,7 @@ public class MainApplication extends javax.swing.JFrame {
         } else {
             connectionDialog.setVisible(false);
             this.setVisible(true);
-            debugPane.setText("Connected to: " + db_url);
+            debugPane.setText("Connected to: " + db_url + "\n");
             try {
                 getDatabaseList();
             } catch (SQLException ex) {
@@ -739,7 +749,7 @@ public class MainApplication extends javax.swing.JFrame {
         if (returnVal == JFileChooser.APPROVE_OPTION){
             File file = fileChooser.getSelectedFile();
             try {
-                debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "\nOpening file: " + file.getName(), null);
+                debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Opening file: " + file.getName() + "\n", null);
                 Scanner s = new Scanner(file);
                 importSQL(s,false);
                 getDatabaseList();
@@ -782,9 +792,14 @@ public class MainApplication extends javax.swing.JFrame {
         try {
             // TODO add your handling code here:
             importSQL(new Scanner(queryPane1.getText()),true);
-            queryPane1.setText("");
+            queryPane1.setText(null);
         } catch (SQLException | FileNotFoundException ex) {
             Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            try {
+                queryDebugPane.getStyledDocument().insertString(queryDebugPane.getStyledDocument().getLength(), ex + "\n", null);
+            } catch (BadLocationException ex1) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
+            }
         }
     }//GEN-LAST:event_customQuerySubmitButtonActionPerformed
 
