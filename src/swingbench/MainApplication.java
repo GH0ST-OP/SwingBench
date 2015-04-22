@@ -85,7 +85,6 @@ public class MainApplication extends javax.swing.JFrame {
             dialog_password.setText(prefs.get("Password", ""));
             rememberMeCheckBox.setSelected(true);
         } else {
-            System.out.println("Preferences could not be read.");
         }
     }
     
@@ -97,11 +96,9 @@ public class MainApplication extends javax.swing.JFrame {
             Class.forName("com.mysql.jdbc.Driver");
 
             //STEP 3: Open a connection
-            System.out.println("Connecting to database...");
             conn = DriverManager.getConnection(db_url,db_username,db_password);
 
             //STEP 4: Execute a query
-            System.out.println("Creating statement...");
             stmt = conn.createStatement();
             stmt.close();
             return true;
@@ -123,12 +120,10 @@ public class MainApplication extends javax.swing.JFrame {
     }
     
     private void getDatabaseList() throws SQLException{
-        System.out.println(conn);
         DefaultMutableTreeNode MySQL = new DefaultMutableTreeNode("MySQL");
         DatabaseMetaData md = conn.getMetaData();
         ResultSet db = md.getCatalogs();
         while(db.next()) {
-            System.out.println("db  =  "+db.getString(1));
             DefaultMutableTreeNode database = new DefaultMutableTreeNode(db.getString(1));
             MySQL.add(database);
             String[] types = {"TABLE", "VIEW"};
@@ -136,7 +131,6 @@ public class MainApplication extends javax.swing.JFrame {
             boolean emptySet = true;
             while(tbl.next()) {
                 emptySet = false;
-                System.out.println("--tbl = "+tbl.getString("TABLE_NAME"));
                 DefaultMutableTreeNode table = new DefaultMutableTreeNode(tbl.getString("TABLE_NAME"));
                 database.add(table);
             }
@@ -154,8 +148,12 @@ public class MainApplication extends javax.swing.JFrame {
     private void updateTable(String db, String tbl) throws SQLException {
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
-        System.out.println(rs);
         selectedTable.setModel(buildTableModel(rs));
+        for (int i = 0; i < selectedTable.getColumnCount(); i++){
+            int stringLength = selectedTable.getValueAt(0, i).toString().length();
+            selectedTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
+            selectedTable.updateUI();
+        }
     }
     
     public void importSQL(Scanner s, boolean flag) throws SQLException, FileNotFoundException {
@@ -220,14 +218,12 @@ public class MainApplication extends javax.swing.JFrame {
             throws SQLException {
 
         ResultSetMetaData metaData = rs.getMetaData();
-        System.out.println(metaData);
 
         // names of columns
         Vector<String> columnNames = new Vector<>();
         int columnCount = metaData.getColumnCount();
         for (int column = 1; column <= columnCount; column++) {
             columnNames.add(metaData.getColumnName(column));
-            System.out.println(metaData.getColumnName(column));
         }
 
         // data of the table
@@ -236,7 +232,6 @@ public class MainApplication extends javax.swing.JFrame {
             Vector<Object> vector = new Vector<>();
             for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
                 vector.add(rs.getObject(columnIndex));
-                System.out.println(rs.getObject(columnIndex));
             }
             data.add(vector);
         }
@@ -303,6 +298,7 @@ public class MainApplication extends javax.swing.JFrame {
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
         connectionDialog.setMinimumSize(new java.awt.Dimension(418, 225));
+        connectionDialog.setResizable(false);
         connectionDialog.addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowDeactivated(java.awt.event.WindowEvent evt) {
                 connectionDialogWindowDeactivated(evt);
@@ -419,6 +415,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         queryDialog.setMinimumSize(new java.awt.Dimension(571, 500));
         queryDialog.setPreferredSize(new java.awt.Dimension(571, 500));
+        queryDialog.setResizable(false);
 
         jScrollPane1.setAutoscrolls(true);
 
@@ -489,6 +486,7 @@ public class MainApplication extends javax.swing.JFrame {
         setTitle("SwingBench");
         setMinimumSize(new java.awt.Dimension(700, 635));
         setPreferredSize(new java.awt.Dimension(700, 635));
+        setResizable(false);
 
         debugScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         debugScrollPane.setAutoscrolls(true);
@@ -728,14 +726,19 @@ public class MainApplication extends javax.swing.JFrame {
         if(selRow != -1 && selRow != 0) {
             if(evt.getClickCount() == 2) {
                 try {
+                    long start_time = System.nanoTime();
                     String db = selPath.getPath()[1].toString();
                     String tbl = selPath.getPath()[2].toString();
+                    updateTable(db, tbl);
                                        
+                    long end_time = System.nanoTime();
+                    double difference = (end_time - start_time)/1e9;
+                    String time = String.format("%.2f", difference);
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Statement: SELECT * FROM " + db + "." + tbl + "; Execution time:" + time + "\n", null);
                     updateTable(db,tbl);
-                    System.out.println(selRow);
-                    System.out.println(selPath);
-                    System.out.println(db);
                 } catch (SQLException ex) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (BadLocationException ex) {
                     Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
