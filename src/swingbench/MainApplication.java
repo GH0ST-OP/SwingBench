@@ -6,38 +6,31 @@
 package swingbench;
 
 import java.awt.Dimension;
-import java.awt.Image;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.Thread.State;
-import static java.lang.Thread.State.RUNNABLE;
-import static java.lang.Thread.sleep;
-import java.nio.file.Files;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.Level;
-import static java.util.logging.Level.OFF;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
-import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
-import javax.swing.JTree;
 import javax.swing.JTable;
-import static javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS;
-import static javax.swing.JTable.AUTO_RESIZE_OFF;
-import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS;
-import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED;
-import static javax.swing.event.TableModelEvent.ALL_COLUMNS;
+import javax.swing.JTree;
+import javax.swing.SwingWorker;
+import javax.swing.SwingWorker.StateValue;
+import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -49,45 +42,133 @@ import javax.swing.tree.TreePath;
  * @author xt3
  */
 public class MainApplication extends javax.swing.JFrame {
-    
-    static final String JDBC_DRIVER = "com.mysql.jdbc.Driver"; 
+
+    static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
     private String db_url;
     private String db_username;
     private String db_password;
     private Connection conn;
     private File importFile;
-    private String dir;    
+    private String dir;
     private boolean exportBoolean = true;
-    
+
+    private CreateTableWorker worker1;
+
     private DefaultTreeModel model;
-    
+
     private String[] types = {"INT", "TINYINT", "SMALLINT",
         "MEDIUMINT", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL(16,4)",
         "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR",
         "CHAR(1)", "CHAR(25)", "CHAR(160)", "VARCHAR(255)",
         "TEXT", "TINYTEXT", "MEDIUMTEXT", "LONGTEXT", "ENUM"};
-    
-    private Preferences prefs;
-    
-    public class TableBuilder implements Runnable {
-        
-        volatile Object thread = State.NEW;
-        private String db;
-        private String tbl;
 
-        public TableBuilder(String db, String tbl) {
+    private Preferences prefs;
+
+//    Timer loadingTimer = new Timer(125, new ActionListener() {
+//                @Override
+//                public void actionPerformed(ActionEvent e) {
+//                    if (worker1 != null && !worker1.isDone()){
+//                        loadingDialog.setVisible(true);
+//                    }
+//                    else {
+//                        loadingDialog.setVisible(false);
+//                    }
+//                }
+//            });
+
+    public class CreateTableWorker extends SwingWorker<Integer, String> {
+
+        private final JTable table;
+        private final String db;
+        private final String tbl;
+        private final String query;
+        private final int progress;
+
+        public CreateTableWorker(final JTable table, final String db, final String tbl, final String query){
+            this.table = table;
             this.db = db;
             this.tbl = tbl;
+            this.query = query;
+            progress = 0;
         }
 
-       @Override
-        public void run(){
-            try {
-                updateTable(db,tbl);
-            } catch (SQLException ex) {
-                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        @Override
+        protected Integer doInBackground() throws Exception {
+            publish("Begin populating the table");
+            Statement stmt = conn.createStatement();
+            ResultSet rs;
+
+            if (query == ""){
+                rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
+            } else {
+                rs = stmt.executeQuery(query);
             }
+
+            table.setModel(buildTableModel(rs));
+
+
+            //Adjust Columns
+            for (int i = 0; i < table.getColumnCount(); i++){
+                int stringLength = table.getValueAt(0, i).toString().length();
+                table.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
+//                selectedTable.updateUI();
+            }
+
+            return progress;
         }
+
+        private DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+
+            ResultSetMetaData metaData = rs.getMetaData();
+
+            rs.last();
+            int size = rs.getRow();
+            int counter = 0;
+            rs.beforeFirst();
+
+            // names of columns
+            Vector<String> columnNames = new Vector<>();
+            int columnCount = metaData.getColumnCount();
+            for (int column = 1; column <= columnCount; column++) {
+                columnNames.add(metaData.getColumnName(column));
+            }
+
+            // data of the table
+            final Vector<Vector<Object>> data = new Vector<>();
+            while (rs.next()) {
+                Vector<Object> vector = new Vector<>();
+                for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+                    vector.add(rs.getObject(columnIndex));
+                }
+
+
+//                if(isCancelled()){
+//                    System.out.println("Canceled");
+//                    return (DefaultTableModel) selectedTable.getModel();
+//                }
+
+                data.add(vector);
+                counter++;
+                setProgress((counter + 1) * 100 / size);
+
+                if (isCancelled()){
+                    break;
+                }
+
+                if (getProgress() == 100){
+                    publish("Finished creating table");
+                    return new DefaultTableModel(data, columnNames){
+                        @Override
+                        public boolean isCellEditable(int row, int column){
+                            return false;
+                        }
+                    };
+                }
+            }
+            //Did not complete, do not change model
+            return (DefaultTableModel) table.getModel();
+        }
+
     }
 
     /**
@@ -96,9 +177,9 @@ public class MainApplication extends javax.swing.JFrame {
     public MainApplication() {
         initComponents();
         prefs = Preferences.userRoot().node(this.getClass().getName());
-        
+
         checkForPref();
-        
+
         connectionDialog.setPreferredSize(new Dimension(440, 200));//set your desired size
         connectionDialog.pack();
         Toolkit toolkit = Toolkit.getDefaultToolkit();
@@ -106,26 +187,26 @@ public class MainApplication extends javax.swing.JFrame {
         int iWidth = (screenSize.width - connectionDialog.getWidth()) / 2;
         int iHeight = (screenSize.height - connectionDialog.getHeight()) / 2;
         connectionDialog.setLocation(iWidth, iHeight);
-        
+
         iWidth = (screenSize.width - queryDialog.getWidth()) / 2;
-        iHeight = (screenSize.height - queryDialog.getHeight()) / 2;        
+        iHeight = (screenSize.height - queryDialog.getHeight()) / 2;
         queryDialog.setLocation(iWidth, iHeight);
-        
+
         iWidth = (screenSize.width - importText.getWidth()) / 2;
-        iHeight = (screenSize.height - importText.getHeight()) / 2;        
+        iHeight = (screenSize.height - importText.getHeight()) / 2;
         importText.setLocation(iWidth, iHeight);
-        
+
         iWidth = (screenSize.width - loadingDialog.getWidth()) / 2;
         iHeight = (screenSize.height - loadingDialog.getHeight()) / 2;
         loadingDialog.setLocation(iWidth, iHeight);
-        
+
         iWidth = (screenSize.width - fileNamerDialog.getWidth()) / 2;
         iHeight = (screenSize.height - fileNamerDialog.getHeight()) / 2;
         fileNamerDialog.setLocation(iWidth, iHeight);
-        
+
         connectionDialog.setVisible(true);
     }
-    
+
     private void checkForPref() {
         if (prefs.getBoolean("RememberMe", false)) {
             //set values in connectionDialog
@@ -136,7 +217,7 @@ public class MainApplication extends javax.swing.JFrame {
         } else {
         }
     }
-    
+
     public boolean connectToServer() {
         conn = null;
         Statement stmt = null;
@@ -167,7 +248,7 @@ public class MainApplication extends javax.swing.JFrame {
         }
         return false;
     }
-    
+
     private void getDatabaseList() throws SQLException{
         DefaultMutableTreeNode MySQL = new DefaultMutableTreeNode("MySQL");
         DatabaseMetaData md = conn.getMetaData();
@@ -188,29 +269,29 @@ public class MainApplication extends javax.swing.JFrame {
             tbl.close();
         }
         db.close();
-        
+
         JTree root = new JTree(MySQL);
         model = (DefaultTreeModel) root.getModel();
-        schemaTree.setModel(model); 
+        schemaTree.setModel(model);
     }
-    
-    private void updateTable(String db, String tbl) throws SQLException {
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
-        selectedTable.setModel(buildTableModel(rs));
-        for (int i = 0; i < selectedTable.getColumnCount(); i++){
-            int stringLength = selectedTable.getValueAt(0, i).toString().length();
-            selectedTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
-            selectedTable.updateUI();
-        }
-    }
-    
+
+//    private void updateTable(String db, String tbl) throws SQLException {
+//        Statement stmt = conn.createStatement();
+//        ResultSet rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
+//        selectedTable.setModel(buildTableModel(rs));
+//        for (int i = 0; i < selectedTable.getColumnCount(); i++){
+//            int stringLength = selectedTable.getValueAt(0, i).toString().length();
+//            selectedTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
+//            selectedTable.updateUI();
+//        }
+//    }
+
     public void exportSQL(String fileName) throws SQLException, FileNotFoundException{
         String db = exportdbCombo.getSelectedItem().toString();
         if (exportBoolean) {
             try {
                 String tbl = exporttblCombo.getSelectedItem().toString();
-                String terminal = "echo 'select * from "+ tbl + "' | mysql -u " + 
+                String terminal = "echo 'select * from "+ tbl + "' | mysql -u " +
                         db_username +
                         " --password=" + db_password + " " +
                         db + " > " + dir + "/" + fileName;
@@ -219,7 +300,7 @@ public class MainApplication extends javax.swing.JFrame {
                     "/bin/sh",
                     "-c",
                     test
-                };  
+                };
                 Process p = Runtime.getRuntime().exec(cmd);
                 try {
                     debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "File '" + fileName + "' exported successfully.\n", null);
@@ -237,14 +318,14 @@ public class MainApplication extends javax.swing.JFrame {
         }
         else{
             try {
-                String terminal = "mysqldump " + 
+                String terminal = "mysqldump " +
                         " -u " + db_username + " --password=" + db_password +
                         " " + db + " > " + dir + "/" + fileName;
                 String[] cmd = {
                     "/bin/sh",
                     "-c",
                     terminal
-                }; 
+                };
                 Process p = Runtime.getRuntime().exec(cmd);
             try {
                     debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Database " + db + " dumped successfully.\n", null);
@@ -261,7 +342,7 @@ public class MainApplication extends javax.swing.JFrame {
             }
         }
     }
-    
+
     public void importSQL(Scanner s, boolean flag) throws SQLException, FileNotFoundException {
 	s.useDelimiter(";");
 	Statement stmt = null;
@@ -290,13 +371,13 @@ public class MainApplication extends javax.swing.JFrame {
                         rs = pst.executeQuery();
                         if (flag){
                             customQueryTable.setModel(buildTableModel(rs));
-                            
+
                             //Set Width Testing
                             for (int i = 0; i < customQueryTable.getColumnCount(); i++){
                                 customQueryTable.getColumnModel().getColumn(i).setPreferredWidth(130);
                                 customQueryTable.updateUI();
                             }
-                            
+
                         }
                     }else{
                         stmt.execute(line);
@@ -305,7 +386,7 @@ public class MainApplication extends javax.swing.JFrame {
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
                     if (flag){
-                        queryDebugPane.getStyledDocument().insertString(queryDebugPane.getStyledDocument().getLength(), "Statement: " + line + "  Execution time:" + time + "\n", null);
+                        customQueryDebugPane.getStyledDocument().insertString(customQueryDebugPane.getStyledDocument().getLength(), "Statement: " + line + "  Execution time:" + time + "\n", null);
                     }else{
                         debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Statement: " + line + "  Execution time:" + time + "\n", null);
                     }
@@ -313,14 +394,14 @@ public class MainApplication extends javax.swing.JFrame {
             }
 	}
         catch (BadLocationException ex) {
-            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);           
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
         }	finally
 	{
 		if (stmt != null) stmt.close();
 	}
     }
-    
-    public static DefaultTableModel buildTableModel(ResultSet rs) 
+
+    public static DefaultTableModel buildTableModel(ResultSet rs)
             throws SQLException {
 
         ResultSetMetaData metaData = rs.getMetaData();
@@ -377,12 +458,14 @@ public class MainApplication extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jScrollPane3 = new javax.swing.JScrollPane();
-        queryPane1 = new javax.swing.JEditorPane();
+        customQueryPane = new javax.swing.JEditorPane();
         customQuerySubmitButton = new javax.swing.JButton();
         jScrollPane4 = new javax.swing.JScrollPane();
-        queryDebugPane = new javax.swing.JTextPane();
+        customQueryDebugPane = new javax.swing.JTextPane();
         loadingDialog = new javax.swing.JDialog();
         jLabel6 = new javax.swing.JLabel();
+        tableBuilderProgressBar = new javax.swing.JProgressBar();
+        AbortUpdateTableButton = new javax.swing.JButton();
         importText = new javax.swing.JDialog();
         jButton1 = new javax.swing.JButton();
         importTextfilename = new javax.swing.JLabel();
@@ -432,11 +515,12 @@ public class MainApplication extends javax.swing.JFrame {
         exportTXT = new javax.swing.JMenuItem();
         jMenu3 = new javax.swing.JMenu();
         customQueryMenuItem = new javax.swing.JMenuItem();
-        jMenuItem2 = new javax.swing.JMenuItem();
+        queryBuilderMenuItem = new javax.swing.JMenuItem();
 
         connectionDialog.setTitle("Connect to MySQL DB");
         connectionDialog.setAlwaysOnTop(true);
-        connectionDialog.setMinimumSize(new java.awt.Dimension(418, 225));
+        connectionDialog.setMinimumSize(new java.awt.Dimension(418, 215));
+        connectionDialog.setPreferredSize(new java.awt.Dimension(418, 215));
         connectionDialog.setResizable(false);
         connectionDialog.addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowDeactivated(java.awt.event.WindowEvent evt) {
@@ -518,9 +602,8 @@ public class MainApplication extends javax.swing.JFrame {
                                 .addComponent(dialog_username, javax.swing.GroupLayout.DEFAULT_SIZE, 130, Short.MAX_VALUE))
                             .addComponent(dialog_url, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, connectionDialogLayout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
                         .addComponent(rememberMeCheckBox)
-                        .addGap(56, 56, 56)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(connectButton)))
                 .addGap(41, 41, 41))
         );
@@ -543,7 +626,7 @@ public class MainApplication extends javax.swing.JFrame {
                             .addComponent(dialog_password, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(31, 31, 31))
                     .addComponent(dialog_error_label))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 16, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE)
                 .addGroup(connectionDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(connectButton)
                     .addComponent(rememberMeCheckBox))
@@ -553,7 +636,6 @@ public class MainApplication extends javax.swing.JFrame {
         fileChooser.setCurrentDirectory(new File("."));
 
         queryDialog.setMinimumSize(new java.awt.Dimension(571, 500));
-        queryDialog.setPreferredSize(new java.awt.Dimension(571, 500));
         queryDialog.setResizable(false);
 
         jScrollPane1.setAutoscrolls(true);
@@ -575,7 +657,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         jLabel5.setText("Debug console");
 
-        jScrollPane3.setViewportView(queryPane1);
+        jScrollPane3.setViewportView(customQueryPane);
 
         customQuerySubmitButton.setText("Submit Query");
         customQuerySubmitButton.addActionListener(new java.awt.event.ActionListener() {
@@ -584,8 +666,8 @@ public class MainApplication extends javax.swing.JFrame {
             }
         });
 
-        queryDebugPane.setEditable(false);
-        jScrollPane4.setViewportView(queryDebugPane);
+        customQueryDebugPane.setEditable(false);
+        jScrollPane4.setViewportView(customQueryDebugPane);
 
         javax.swing.GroupLayout queryDialogLayout = new javax.swing.GroupLayout(queryDialog.getContentPane());
         queryDialog.getContentPane().setLayout(queryDialogLayout);
@@ -621,29 +703,48 @@ public class MainApplication extends javax.swing.JFrame {
                 .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
-        loadingDialog.setMinimumSize(new java.awt.Dimension(300, 200));
+        loadingDialog.setAutoRequestFocus(false);
+        loadingDialog.setMinimumSize(new java.awt.Dimension(400, 120));
+        loadingDialog.setPreferredSize(new java.awt.Dimension(400, 120));
+        loadingDialog.setResizable(false);
 
         jLabel6.setText("Loading Table. Please Wait...");
+
+        AbortUpdateTableButton.setText("Abort");
+        AbortUpdateTableButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AbortUpdateTableButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout loadingDialogLayout = new javax.swing.GroupLayout(loadingDialog.getContentPane());
         loadingDialog.getContentPane().setLayout(loadingDialogLayout);
         loadingDialogLayout.setHorizontalGroup(
             loadingDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(loadingDialogLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel6)
-                .addContainerGap(179, Short.MAX_VALUE))
+                .addGap(94, 94, 94)
+                .addGroup(loadingDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(tableBuilderProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(100, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, loadingDialogLayout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(AbortUpdateTableButton)
+                .addContainerGap())
         );
         loadingDialogLayout.setVerticalGroup(
             loadingDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(loadingDialogLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jLabel6)
-                .addContainerGap(273, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(tableBuilderProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(AbortUpdateTableButton)
+                .addContainerGap(13, Short.MAX_VALUE))
         );
 
         importText.setMinimumSize(new java.awt.Dimension(600, 330));
-        importText.setPreferredSize(new java.awt.Dimension(600, 330));
         importText.setResizable(false);
 
         jButton1.setText("File Selector");
@@ -999,13 +1100,13 @@ public class MainApplication extends javax.swing.JFrame {
         });
         jMenu3.add(customQueryMenuItem);
 
-        jMenuItem2.setText("Query-Builder");
-        jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
+        queryBuilderMenuItem.setText("Query-Builder");
+        queryBuilderMenuItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jMenuItem2ActionPerformed(evt);
+                queryBuilderMenuItemActionPerformed(evt);
             }
         });
-        jMenu3.add(jMenuItem2);
+        jMenu3.add(queryBuilderMenuItem);
 
         mainMenuBar.add(jMenu3);
 
@@ -1047,7 +1148,7 @@ public class MainApplication extends javax.swing.JFrame {
     }//GEN-LAST:event_dialog_usernameActionPerformed
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        
+
         //If a user connects with remember me checked, store preferences
         if (rememberMeCheckBox.isSelected()) {
             prefs.putBoolean("RememberMe", true);
@@ -1061,7 +1162,7 @@ public class MainApplication extends javax.swing.JFrame {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
         dialog_error_label.setText("");
         db_url = "jdbc:mysql://" + dialog_url.getText();
         db_username = dialog_username.getText();
@@ -1144,35 +1245,36 @@ public class MainApplication extends javax.swing.JFrame {
                     long start_time = System.nanoTime();
                     String db = selPath.getPath()[1].toString();
                     String tbl = selPath.getPath()[2].toString();
-                    
-                    //Does this work?
-//                    boolean takingLong = true;
-                    Thread tableBuilder = new Thread(new TableBuilder(db,tbl));                    
-                    tableBuilder.start();                    
-                    
-                    while (tableBuilder.getState() == RUNNABLE){
-                        //do nothing
-                    }
-//                        sleep(100);
-//                        if(takingLong){
-//                            loadingDialog.setVisible(true);
-//                            queryDialog.setVisible(true);
-//                            takingLong = false;
-//                        }
-//                    }
-                    
-//                    System.out.println();
-                    
-//                    sleep(5000);
-                    
-//                    loadingDialog.setVisible(false);
-                                       
+
+                    worker1 = new CreateTableWorker(selectedTable,db,tbl,"");
+                    worker1.addPropertyChangeListener((PropertyChangeEvent event) -> {
+                        switch (event.getPropertyName()) {
+                            case "progress":
+                                tableBuilderProgressBar.setIndeterminate(false);
+                                tableBuilderProgressBar.setValue((Integer) event.getNewValue());
+                                break;
+                            case "state":
+                                switch ((StateValue) event.getNewValue()) {
+
+                                    case STARTED:
+                                    case PENDING:
+                                        tableBuilderProgressBar.setIndeterminate(true);
+                                        loadingDialog.setVisible(true);
+                                        break;
+                                    case DONE:
+                                        loadingDialog.setVisible(false);
+//                                        worker1 = null;
+                                        break;
+                                }
+                                break;
+                        }
+                    });
+                    worker1.execute();
+
                     long end_time = System.nanoTime();
                     double difference = (end_time - start_time)/1e9;
                     String time = String.format("%.2f", difference);
                     debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Statement: SELECT * FROM " + db + "." + tbl + "; Execution time:" + time + "\n", null);
-//                } catch (SQLException ex) {
-//                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (BadLocationException ex) {
                     Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -1183,7 +1285,7 @@ public class MainApplication extends javax.swing.JFrame {
     private void importSQLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importSQLActionPerformed
         // TODO add your handling code here:
         int returnVal = fileChooser.showOpenDialog(null);
-        
+
         if (returnVal == JFileChooser.APPROVE_OPTION){
             File file = fileChooser.getSelectedFile();
             try {
@@ -1195,7 +1297,7 @@ public class MainApplication extends javax.swing.JFrame {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
     }//GEN-LAST:event_importSQLActionPerformed
 
     private void importTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importTXTActionPerformed
@@ -1209,17 +1311,17 @@ public class MainApplication extends javax.swing.JFrame {
             lineterm.setText("\\n");
             ArrayList<String> dbNames = new ArrayList<>();
             importTextImportButton.setEnabled(false);
-            
+
             DatabaseMetaData md = conn.getMetaData();
             ResultSet db = md.getCatalogs();
-            
+
             while(db.next()) {
                 dbNames.add(db.getString(1));
             }
-            
+
             databaseCombo.setModel(new DefaultComboBoxModel(dbNames.toArray()));
             tableCombo.setEnabled(false);
-            
+
             importText.setVisible(true);
         } catch (SQLException ex) {
             Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
@@ -1237,13 +1339,13 @@ public class MainApplication extends javax.swing.JFrame {
     private void connectionDialogWindowDeactivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_connectionDialogWindowDeactivated
         // TODO add your handling code here:
         if (conn == null){
-          System.exit(0);  
-        }      
+          System.exit(0);
+        }
     }//GEN-LAST:event_connectionDialogWindowDeactivated
 
-    private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
+    private void queryBuilderMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_queryBuilderMenuItemActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jMenuItem2ActionPerformed
+    }//GEN-LAST:event_queryBuilderMenuItemActionPerformed
 
     private void customQueryMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_customQueryMenuItemActionPerformed
         // TODO add your handling code here:
@@ -1253,12 +1355,12 @@ public class MainApplication extends javax.swing.JFrame {
     private void customQuerySubmitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_customQuerySubmitButtonActionPerformed
         try {
             // TODO add your handling code here:
-            importSQL(new Scanner(queryPane1.getText()),true);
-            queryPane1.setText(null);
+            importSQL(new Scanner(customQueryPane.getText()),true);
+            customQueryPane.setText(null);
         } catch (SQLException | FileNotFoundException ex) {
             Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
             try {
-                queryDebugPane.getStyledDocument().insertString(queryDebugPane.getStyledDocument().getLength(), ex + "\n", null);
+                customQueryDebugPane.getStyledDocument().insertString(customQueryDebugPane.getStyledDocument().getLength(), ex + "\n", null);
             } catch (BadLocationException ex1) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
             }
@@ -1273,14 +1375,14 @@ public class MainApplication extends javax.swing.JFrame {
             fileWarning.setVisible(false);
             fileNamerName.setText("");
             selectedDirectory.setText("");
-            
+
             DatabaseMetaData md = conn.getMetaData();
             ResultSet db = md.getCatalogs();
-            
+
             while(db.next()) {
                 dbNames.add(db.getString(1));
             }
-            
+
             exportdbCombo.setModel(new DefaultComboBoxModel(dbNames.toArray()));
             exporttblCombo.setEnabled(false);
             exportBoolean = false;
@@ -1294,8 +1396,8 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = fileChooser.showOpenDialog(null);
-        
-        
+
+
         if (returnVal == JFileChooser.APPROVE_OPTION){
             importFile = fileChooser.getSelectedFile();
             importTextfilename.setText(importFile.getName());
@@ -1334,7 +1436,7 @@ public class MainApplication extends javax.swing.JFrame {
             } catch (BadLocationException ex1) {
                 Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
             }
-        }                
+        }
     }//GEN-LAST:event_importTextImportButtonActionPerformed
 
     private void databaseComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_databaseComboActionPerformed
@@ -1342,7 +1444,7 @@ public class MainApplication extends javax.swing.JFrame {
             // TODO add your handling code here:
             String dbName2 = databaseCombo.getSelectedItem().toString();
             ArrayList<String> tblNames2 = new ArrayList<>();
-            
+
             DatabaseMetaData md = conn.getMetaData();
             String[] types = {"TABLE", "VIEW"};
             ResultSet tbl = md.getTables(dbName2, null, "%", types);
@@ -1351,8 +1453,8 @@ public class MainApplication extends javax.swing.JFrame {
                 tblNames2.add(tbl.getString("TABLE_NAME"));
                 emptySet = true;
             }
-            tbl.close();            
-            
+            tbl.close();
+
             tableCombo.setModel(new DefaultComboBoxModel(tblNames2.toArray()));
             tableCombo.setEnabled(emptySet);
         } catch (SQLException ex) {
@@ -1381,14 +1483,14 @@ public class MainApplication extends javax.swing.JFrame {
             fileWarning.setVisible(false);
             fileNamerName.setText("");
             selectedDirectory.setText("");
-            
+
             DatabaseMetaData md = conn.getMetaData();
             ResultSet db = md.getCatalogs();
-            
+
             while(db.next()) {
                 dbNames.add(db.getString(1));
             }
-            
+
             exportdbCombo.setModel(new DefaultComboBoxModel(dbNames.toArray()));
             exporttblCombo.setEnabled(false);
             exportBoolean = true;
@@ -1430,7 +1532,7 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int returnVal = fileChooser.showOpenDialog(null);
-            
+
         if (returnVal == JFileChooser.APPROVE_OPTION){
             dir = fileChooser.getCurrentDirectory().toString();
             dir = dir + "/" + fileChooser.getSelectedFile().getName();
@@ -1445,7 +1547,7 @@ public class MainApplication extends javax.swing.JFrame {
             // TODO add your handling code here:
             String dbName2 = exportdbCombo.getSelectedItem().toString();
             ArrayList<String> tblNames2 = new ArrayList<>();
-            
+
             DatabaseMetaData md = conn.getMetaData();
             String[] types = {"TABLE", "VIEW"};
             ResultSet tbl = md.getTables(dbName2, null, "%", types);
@@ -1454,8 +1556,8 @@ public class MainApplication extends javax.swing.JFrame {
                 tblNames2.add(tbl.getString("TABLE_NAME"));
                 emptySet = true;
             }
-            tbl.close();            
-            
+            tbl.close();
+
             exporttblCombo.setModel(new DefaultComboBoxModel(tblNames2.toArray()));
             if (exportBoolean){
                 exporttblCombo.setEnabled(emptySet);
@@ -1468,6 +1570,12 @@ public class MainApplication extends javax.swing.JFrame {
     private void tableComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tableComboActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_tableComboActionPerformed
+
+    private void AbortUpdateTableButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AbortUpdateTableButtonActionPerformed
+        // TODO add your handling code here:
+        worker1.cancel(true);
+    }//GEN-LAST:event_AbortUpdateTableButtonActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1475,7 +1583,7 @@ public class MainApplication extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -1484,29 +1592,26 @@ public class MainApplication extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(MainApplication.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MainApplication.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MainApplication.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(MainApplication.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
+        //</editor-fold>
+
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new MainApplication().setVisible(false);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new MainApplication().setVisible(false);
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton AbortUpdateTableButton;
     private javax.swing.JButton connectButton;
     private javax.swing.JDialog connectionDialog;
+    private javax.swing.JTextPane customQueryDebugPane;
     private javax.swing.JMenuItem customQueryMenuItem;
+    private javax.swing.JEditorPane customQueryPane;
     private javax.swing.JButton customQuerySubmitButton;
     private javax.swing.JTable customQueryTable;
     private javax.swing.JComboBox databaseCombo;
@@ -1557,6 +1662,7 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuItem jMenuItem2;
+    private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
     private javax.swing.JMenuItem jMenu_refreshButton;
@@ -1567,14 +1673,14 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JTextField lineterm;
     private javax.swing.JDialog loadingDialog;
     private javax.swing.JMenuBar mainMenuBar;
-    private javax.swing.JTextPane queryDebugPane;
+    private javax.swing.JMenuItem queryBuilderMenuItem;
     private javax.swing.JDialog queryDialog;
-    private javax.swing.JEditorPane queryPane1;
     private javax.swing.JCheckBox rememberMeCheckBox;
     private javax.swing.JScrollPane schemaScrollPane;
     private javax.swing.JTree schemaTree;
     private javax.swing.JLabel selectedDirectory;
     private javax.swing.JTable selectedTable;
+    private javax.swing.JProgressBar tableBuilderProgressBar;
     private javax.swing.JComboBox tableCombo;
     private javax.swing.JScrollPane tableScrollPane;
     // End of variables declaration//GEN-END:variables
