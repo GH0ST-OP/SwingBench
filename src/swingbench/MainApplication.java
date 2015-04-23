@@ -56,9 +56,16 @@ public class MainApplication extends javax.swing.JFrame {
     private String db_password;
     private Connection conn;
     private File importFile;
-    
+    private String dir;    
+    private boolean exportBoolean = true;
     
     private DefaultTreeModel model;
+    
+    private String[] types = {"INT", "TINYINT", "SMALLINT",
+        "MEDIUMINT", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL(16,4)",
+        "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR",
+        "CHAR(1)", "CHAR(25)", "CHAR(160)", "VARCHAR(255)",
+        "TEXT", "TINYTEXT", "MEDIUMTEXT", "LONGTEXT", "ENUM"};
     
     private Preferences prefs;
     
@@ -111,6 +118,10 @@ public class MainApplication extends javax.swing.JFrame {
         iWidth = (screenSize.width - loadingDialog.getWidth()) / 2;
         iHeight = (screenSize.height - loadingDialog.getHeight()) / 2;
         loadingDialog.setLocation(iWidth, iHeight);
+        
+        iWidth = (screenSize.width - fileNamerDialog.getWidth()) / 2;
+        iHeight = (screenSize.height - fileNamerDialog.getHeight()) / 2;
+        fileNamerDialog.setLocation(iWidth, iHeight);
         
         connectionDialog.setVisible(true);
     }
@@ -194,6 +205,63 @@ public class MainApplication extends javax.swing.JFrame {
         }
     }
     
+    public void exportSQL(String fileName) throws SQLException, FileNotFoundException{
+        String db = exportdbCombo.getSelectedItem().toString();
+        if (exportBoolean) {
+            try {
+                String tbl = exporttblCombo.getSelectedItem().toString();
+                String terminal = "echo 'select * from "+ tbl + "' | mysql -u " + 
+                        db_username +
+                        " --password=" + db_password + " " +
+                        db + " > " + dir + "/" + fileName;
+                String test = "echo 'select * from states' | mysql -u doonan --password=halopwner1 us_states > /Users/jdoonan44/8th_semester/Databases/staters.txt";
+                String[] cmd = {
+                    "/bin/sh",
+                    "-c",
+                    test
+                };  
+                Process p = Runtime.getRuntime().exec(cmd);
+                try {
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "File '" + fileName + "' exported successfully.\n", null);
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } catch (IOException ex) {
+                try {
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), ex + "\n", null);
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (BadLocationException ex1) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
+                }
+            }
+        }
+        else{
+            try {
+                String terminal = "mysqldump " + 
+                        " -u " + db_username + " --password=" + db_password +
+                        " " + db + " > " + dir + "/" + fileName;
+                String[] cmd = {
+                    "/bin/sh",
+                    "-c",
+                    terminal
+                }; 
+                Process p = Runtime.getRuntime().exec(cmd);
+            try {
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Database " + db + " dumped successfully.\n", null);
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } catch (IOException ex) {
+                try {
+                    debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), ex + "\n", null);
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (BadLocationException ex1) {
+                    Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
+                }
+            }
+        }
+    }
+    
     public void importSQL(Scanner s, boolean flag) throws SQLException, FileNotFoundException {
 	s.useDelimiter(";");
 	Statement stmt = null;
@@ -216,7 +284,8 @@ public class MainApplication extends javax.swing.JFrame {
                     PreparedStatement pst;
                     ResultSet rs;
                     long start_time = System.nanoTime();
-                    if(line.toLowerCase().startsWith("select") || line.toLowerCase().startsWith("show")) {
+                    if(line.toLowerCase().startsWith("select") || line.toLowerCase().startsWith("show")
+                            || line.toLowerCase().startsWith("desc")) {
                         pst = (PreparedStatement) conn.prepareStatement(line);
                         rs = pst.executeQuery();
                         if (flag){
@@ -224,8 +293,7 @@ public class MainApplication extends javax.swing.JFrame {
                             
                             //Set Width Testing
                             for (int i = 0; i < customQueryTable.getColumnCount(); i++){
-                                int stringLength = customQueryTable.getValueAt(0, i).toString().length();
-                                customQueryTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
+                                customQueryTable.getColumnModel().getColumn(i).setPreferredWidth(130);
                                 customQueryTable.updateUI();
                             }
                             
@@ -333,6 +401,18 @@ public class MainApplication extends javax.swing.JFrame {
         tableCombo = new javax.swing.JComboBox();
         jLabel12 = new javax.swing.JLabel();
         jLabel13 = new javax.swing.JLabel();
+        fileNamerDialog = new javax.swing.JDialog();
+        jLabel14 = new javax.swing.JLabel();
+        fileNamerName = new javax.swing.JTextField();
+        jLabel15 = new javax.swing.JLabel();
+        selectedDirectory = new javax.swing.JLabel();
+        exportButton = new javax.swing.JButton();
+        exportdbCombo = new javax.swing.JComboBox();
+        directorySelector = new javax.swing.JButton();
+        exporttblCombo = new javax.swing.JComboBox();
+        jLabel16 = new javax.swing.JLabel();
+        jLabel17 = new javax.swing.JLabel();
+        fileWarning = new javax.swing.JLabel();
         debugScrollPane = new javax.swing.JScrollPane();
         debugPane = new javax.swing.JTextPane();
         schemaScrollPane = new javax.swing.JScrollPane();
@@ -348,8 +428,8 @@ public class MainApplication extends javax.swing.JFrame {
         jMenu2 = new javax.swing.JMenu();
         importSQL = new javax.swing.JMenuItem();
         importTXT = new javax.swing.JMenuItem();
-        exportSql = new javax.swing.JMenuItem();
-        jMenuItem1 = new javax.swing.JMenuItem();
+        exportSQL = new javax.swing.JMenuItem();
+        exportTXT = new javax.swing.JMenuItem();
         jMenu3 = new javax.swing.JMenu();
         customQueryMenuItem = new javax.swing.JMenuItem();
         jMenuItem2 = new javax.swing.JMenuItem();
@@ -618,6 +698,11 @@ public class MainApplication extends javax.swing.JFrame {
 
         tableCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         tableCombo.setEnabled(false);
+        tableCombo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tableComboActionPerformed(evt);
+            }
+        });
 
         jLabel12.setText("Database:");
 
@@ -700,6 +785,107 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(40, Short.MAX_VALUE))
         );
 
+        fileNamerDialog.setMinimumSize(new java.awt.Dimension(397, 295));
+        fileNamerDialog.setPreferredSize(new java.awt.Dimension(397, 295));
+        fileNamerDialog.setResizable(false);
+
+        jLabel14.setText("Output file name:");
+
+        fileNamerName.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileNamerNameActionPerformed(evt);
+            }
+        });
+
+        jLabel15.setText("Selected directory:");
+
+        exportButton.setText("Export");
+        exportButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportButtonActionPerformed(evt);
+            }
+        });
+
+        exportdbCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        exportdbCombo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportdbComboActionPerformed(evt);
+            }
+        });
+
+        directorySelector.setText("Select directory");
+        directorySelector.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                directorySelectorActionPerformed(evt);
+            }
+        });
+
+        exporttblCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel16.setText("Database:");
+
+        jLabel17.setText("Table:");
+
+        fileWarning.setForeground(new java.awt.Color(255, 0, 0));
+        fileWarning.setText("Provide a file name!");
+
+        javax.swing.GroupLayout fileNamerDialogLayout = new javax.swing.GroupLayout(fileNamerDialog.getContentPane());
+        fileNamerDialog.getContentPane().setLayout(fileNamerDialogLayout);
+        fileNamerDialogLayout.setHorizontalGroup(
+            fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(fileNamerName, javax.swing.GroupLayout.Alignment.TRAILING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, fileNamerDialogLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(fileWarning)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 183, Short.MAX_VALUE)
+                .addComponent(exportButton))
+            .addGroup(fileNamerDialogLayout.createSequentialGroup()
+                .addComponent(exportdbCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(exporttblCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addGroup(fileNamerDialogLayout.createSequentialGroup()
+                .addGroup(fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(fileNamerDialogLayout.createSequentialGroup()
+                        .addComponent(jLabel16)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabel17))
+                    .addGroup(fileNamerDialogLayout.createSequentialGroup()
+                        .addGroup(fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel14)
+                            .addComponent(jLabel15)
+                            .addComponent(directorySelector))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(selectedDirectory, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        fileNamerDialogLayout.setVerticalGroup(
+            fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(fileNamerDialogLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel16)
+                    .addComponent(jLabel17))
+                .addGap(4, 4, 4)
+                .addGroup(fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(exportdbCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(exporttblCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 45, Short.MAX_VALUE)
+                .addComponent(directorySelector)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel15)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(selectedDirectory, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel14)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(fileNamerName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(fileNamerDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(exportButton)
+                    .addComponent(fileWarning))
+                .addGap(19, 19, 19))
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("SwingBench");
         setMinimumSize(new java.awt.Dimension(700, 635));
@@ -767,7 +953,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         mainMenuBar.add(jMenu1);
 
-        jMenu2.setText("Edit");
+        jMenu2.setText("I/O");
 
         importSQL.setText("Import .sql");
         importSQL.addActionListener(new java.awt.event.ActionListener() {
@@ -785,16 +971,21 @@ public class MainApplication extends javax.swing.JFrame {
         });
         jMenu2.add(importTXT);
 
-        exportSql.setText("Export .sql");
-        exportSql.addActionListener(new java.awt.event.ActionListener() {
+        exportSQL.setText("Export .sql");
+        exportSQL.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                exportSqlActionPerformed(evt);
+                exportSQLActionPerformed(evt);
             }
         });
-        jMenu2.add(exportSql);
+        jMenu2.add(exportSQL);
 
-        jMenuItem1.setText("Export .txt");
-        jMenu2.add(jMenuItem1);
+        exportTXT.setText("Export .txt");
+        exportTXT.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportTXTActionPerformed(evt);
+            }
+        });
+        jMenu2.add(exportTXT);
 
         mainMenuBar.add(jMenu2);
 
@@ -912,7 +1103,10 @@ public class MainApplication extends javax.swing.JFrame {
             Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
         }
         this.setVisible(false);
+        importText.setVisible(false);
+        fileNamerDialog.setVisible(false);
         queryDialog.setVisible(false);
+        fileChooser.setVisible(false);
         connectionDialog.setVisible(true);
         conn = null;
     }//GEN-LAST:event_jMenu_disconnectButtonActionPerformed
@@ -1007,6 +1201,7 @@ public class MainApplication extends javax.swing.JFrame {
     private void importTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importTXTActionPerformed
         try {
             // TODO add your handling code here:
+            importTextfilename.setText("");
             fieldencl.setText("");
             fieldterm.setText("\\t");
             fieldesc.setText("\\\\");
@@ -1070,27 +1265,41 @@ public class MainApplication extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_customQuerySubmitButtonActionPerformed
 
-    private void exportSqlActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportSqlActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_exportSqlActionPerformed
+    private void exportSQLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportSQLActionPerformed
+        try {
+            // TODO add your handling code here:
+            ArrayList<String> dbNames = new ArrayList<>();
+            exportButton.setEnabled(false);
+            fileWarning.setVisible(false);
+            fileNamerName.setText("");
+            selectedDirectory.setText("");
+            
+            DatabaseMetaData md = conn.getMetaData();
+            ResultSet db = md.getCatalogs();
+            
+            while(db.next()) {
+                dbNames.add(db.getString(1));
+            }
+            
+            exportdbCombo.setModel(new DefaultComboBoxModel(dbNames.toArray()));
+            exporttblCombo.setEnabled(false);
+            exportBoolean = false;
+            fileNamerDialog.setVisible(true);
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_exportSQLActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = fileChooser.showOpenDialog(null);
+        
         
         if (returnVal == JFileChooser.APPROVE_OPTION){
             importFile = fileChooser.getSelectedFile();
             importTextfilename.setText(importFile.getName());
             importTextImportButton.setEnabled(true);
-            
-//            try {
-//                debugPane.getStyledDocument().insertString(debugPane.getStyledDocument().getLength(), "Opening file: " + file.getName() + "\n", null);
-//                Scanner s = new Scanner(file);
-//                importSQL(s,false);
-//                getDatabaseList();
-//            } catch (BadLocationException | IOException | SQLException ex) {
-//                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
-//            }
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
@@ -1162,6 +1371,103 @@ public class MainApplication extends javax.swing.JFrame {
     private void fieldescActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldescActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_fieldescActionPerformed
+
+    private void exportTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportTXTActionPerformed
+        // TODO add your handling code here:
+        try {
+            // TODO add your handling code here:
+            ArrayList<String> dbNames = new ArrayList<>();
+            exportButton.setEnabled(false);
+            fileWarning.setVisible(false);
+            fileNamerName.setText("");
+            selectedDirectory.setText("");
+            
+            DatabaseMetaData md = conn.getMetaData();
+            ResultSet db = md.getCatalogs();
+            
+            while(db.next()) {
+                dbNames.add(db.getString(1));
+            }
+            
+            exportdbCombo.setModel(new DefaultComboBoxModel(dbNames.toArray()));
+            exporttblCombo.setEnabled(false);
+            exportBoolean = true;
+            fileNamerDialog.setVisible(true);
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_exportTXTActionPerformed
+
+    private void fileNamerNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileNamerNameActionPerformed
+        // TODO add your handling code here:
+        if (fileNamerName.getText().equals("")){
+            exportButton.setEnabled(false);
+        }
+        else{
+            exportButton.setEnabled(true);
+        }
+    }//GEN-LAST:event_fileNamerNameActionPerformed
+
+    private void exportButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportButtonActionPerformed
+        // TODO add your handling code here:
+        if (fileNamerName.getText().equals("")){
+            fileWarning.setVisible(true);
+        }
+        else
+        {
+            try {
+                exportSQL(fileNamerName.getText());
+                fileNamerDialog.setVisible(false);
+            } catch (SQLException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }//GEN-LAST:event_exportButtonActionPerformed
+
+    private void directorySelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_directorySelectorActionPerformed
+        // TODO add your handling code here:
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int returnVal = fileChooser.showOpenDialog(null);
+            
+        if (returnVal == JFileChooser.APPROVE_OPTION){
+            dir = fileChooser.getCurrentDirectory().toString();
+            dir = dir + "/" + fileChooser.getSelectedFile().getName();
+            selectedDirectory.setText(dir);
+            exportButton.setEnabled(true);
+        }
+    }//GEN-LAST:event_directorySelectorActionPerformed
+
+    private void exportdbComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportdbComboActionPerformed
+        // TODO add your handling code here:
+        try {
+            // TODO add your handling code here:
+            String dbName2 = exportdbCombo.getSelectedItem().toString();
+            ArrayList<String> tblNames2 = new ArrayList<>();
+            
+            DatabaseMetaData md = conn.getMetaData();
+            String[] types = {"TABLE", "VIEW"};
+            ResultSet tbl = md.getTables(dbName2, null, "%", types);
+            boolean emptySet = false;
+            while(tbl.next()) {
+                tblNames2.add(tbl.getString("TABLE_NAME"));
+                emptySet = true;
+            }
+            tbl.close();            
+            
+            exporttblCombo.setModel(new DefaultComboBoxModel(tblNames2.toArray()));
+            if (exportBoolean){
+                exporttblCombo.setEnabled(emptySet);
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_exportdbComboActionPerformed
+
+    private void tableComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tableComboActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tableComboActionPerformed
     /**
      * @param args the command line arguments
      */
@@ -1211,11 +1517,19 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JPasswordField dialog_password;
     private javax.swing.JTextField dialog_url;
     private javax.swing.JTextField dialog_username;
-    private javax.swing.JMenuItem exportSql;
+    private javax.swing.JButton directorySelector;
+    private javax.swing.JButton exportButton;
+    private javax.swing.JMenuItem exportSQL;
+    private javax.swing.JMenuItem exportTXT;
+    private javax.swing.JComboBox exportdbCombo;
+    private javax.swing.JComboBox exporttblCombo;
     private javax.swing.JTextField fieldencl;
     private javax.swing.JTextField fieldesc;
     private javax.swing.JTextField fieldterm;
     private javax.swing.JFileChooser fileChooser;
+    private javax.swing.JDialog fileNamerDialog;
+    private javax.swing.JTextField fileNamerName;
+    private javax.swing.JLabel fileWarning;
     private javax.swing.JMenuItem importSQL;
     private javax.swing.JMenuItem importTXT;
     private javax.swing.JDialog importText;
@@ -1227,6 +1541,10 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
+    private javax.swing.JLabel jLabel16;
+    private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -1238,7 +1556,6 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
-    private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JMenuItem jMenu_disconnectButton;
     private javax.swing.JMenuItem jMenu_exitButton;
@@ -1256,6 +1573,7 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JCheckBox rememberMeCheckBox;
     private javax.swing.JScrollPane schemaScrollPane;
     private javax.swing.JTree schemaTree;
+    private javax.swing.JLabel selectedDirectory;
     private javax.swing.JTable selectedTable;
     private javax.swing.JComboBox tableCombo;
     private javax.swing.JScrollPane tableScrollPane;
