@@ -38,7 +38,7 @@ import javax.swing.tree.TreePath;
 
 /**
  *
- * @author xt3
+ * @authors Matthew Monteleone, Justin Doonan
  */
 public class MainApplication extends javax.swing.JFrame {
 
@@ -60,6 +60,10 @@ public class MainApplication extends javax.swing.JFrame {
         "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR",
         "CHAR(1)", "CHAR(25)", "CHAR(160)", "VARCHAR(255)",
         "TEXT", "TINYTEXT", "MEDIUMTEXT", "LONGTEXT", "ENUM"};
+    
+    private String createTableNameS = "";
+    private String createTableQueryS = "";
+    private String createTableColumnS = "";
 
     private Preferences prefs;
 
@@ -79,7 +83,7 @@ public class MainApplication extends javax.swing.JFrame {
             progress = 0;
         }
 
-        @Override
+        @Override   
         protected Integer doInBackground() throws Exception {
             publish("Begin populating the table");
             Statement stmt = conn.createStatement();
@@ -104,6 +108,7 @@ public class MainApplication extends javax.swing.JFrame {
                 }
             }
 
+            stmt.close();
             return progress;
         }
 
@@ -112,7 +117,7 @@ public class MainApplication extends javax.swing.JFrame {
             ResultSetMetaData metaData = rs.getMetaData();
 
             rs.last();
-            int size = rs.getRow();
+            int size = rs.getRow() + 1;
             int counter = 0;
             rs.beforeFirst();
 
@@ -203,6 +208,10 @@ public class MainApplication extends javax.swing.JFrame {
         iWidth = (screenSize.width - dropTableDialog.getWidth()) / 2;
         iHeight = (screenSize.height - dropTableDialog.getHeight()) / 2;
         dropTableDialog.setLocation(iWidth, iHeight);
+                
+        iWidth = (screenSize.width - createTableDialog.getWidth()) / 2;
+        iHeight = (screenSize.height - createTableDialog.getHeight()) / 2;
+        createTableDialog.setLocation(iWidth, iHeight);
 
         connectionDialog.setVisible(true);
     }
@@ -274,18 +283,7 @@ public class MainApplication extends javax.swing.JFrame {
         model = (DefaultTreeModel) root.getModel();
         schemaTree.setModel(model);
     }
-
-//    private void updateTable(String db, String tbl) throws SQLException {
-//        Statement stmt = conn.createStatement();
-//        ResultSet rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
-//        selectedTable.setModel(buildTableModel(rs));
-//        for (int i = 0; i < selectedTable.getColumnCount(); i++){
-//            int stringLength = selectedTable.getValueAt(0, i).toString().length();
-//            selectedTable.getColumnModel().getColumn(i).setPreferredWidth((stringLength + 50) * 2 );
-//            selectedTable.updateUI();
-//        }
-//    }
-
+    
     public void exportSQL(String fileName) throws SQLException, FileNotFoundException{
         String db = exportdbCombo.getSelectedItem().toString();
         if (exportBoolean) {
@@ -523,6 +521,26 @@ public class MainApplication extends javax.swing.JFrame {
         dropTblCombo = new javax.swing.JComboBox();
         dropTblButton = new javax.swing.JButton();
         createTableDialog = new javax.swing.JDialog();
+        jLabel22 = new javax.swing.JLabel();
+        createTableName = new javax.swing.JTextField();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        createTableStatement = new javax.swing.JEditorPane();
+        jLabel23 = new javax.swing.JLabel();
+        createTableExecute = new javax.swing.JButton();
+        createTableAddName = new javax.swing.JButton();
+        jLabel24 = new javax.swing.JLabel();
+        createTableColumnName = new javax.swing.JTextField();
+        jLabel25 = new javax.swing.JLabel();
+        createTableDataTypes = new javax.swing.JComboBox();
+        jSeparator1 = new javax.swing.JSeparator();
+        jLabel26 = new javax.swing.JLabel();
+        createTableExtra = new javax.swing.JTextField();
+        createTableAddColumn = new javax.swing.JButton();
+        jLabel27 = new javax.swing.JLabel();
+        jScrollPane6 = new javax.swing.JScrollPane();
+        createTableDebugPane = new javax.swing.JTextPane();
+        createTableDbNames = new javax.swing.JComboBox();
+        jLabel28 = new javax.swing.JLabel();
         debugScrollPane = new javax.swing.JScrollPane();
         debugPane = new javax.swing.JTextPane();
         schemaScrollPane = new javax.swing.JScrollPane();
@@ -543,8 +561,8 @@ public class MainApplication extends javax.swing.JFrame {
         jMenu3 = new javax.swing.JMenu();
         customQueryMenuItem = new javax.swing.JMenuItem();
         createDbMenuItem = new javax.swing.JMenuItem();
-        dropDbMenuItem = new javax.swing.JMenuItem();
         createTblMenuItem = new javax.swing.JMenuItem();
+        dropDbMenuItem = new javax.swing.JMenuItem();
         dropTblMenuItem = new javax.swing.JMenuItem();
 
         connectionDialog.setTitle("Connect to MySQL DB");
@@ -1015,7 +1033,6 @@ public class MainApplication extends javax.swing.JFrame {
         );
 
         createDatabaseDialog.setMinimumSize(new java.awt.Dimension(278, 145));
-        createDatabaseDialog.setPreferredSize(new java.awt.Dimension(278, 145));
         createDatabaseDialog.setResizable(false);
 
         jLabel18.setText("Database Name:");
@@ -1155,15 +1172,152 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(44, Short.MAX_VALUE))
         );
 
+        createTableDialog.setTitle("Create a new table.");
+        createTableDialog.setMinimumSize(new java.awt.Dimension(526, 540));
+        createTableDialog.setPreferredSize(new java.awt.Dimension(526, 540));
+        createTableDialog.setResizable(false);
+
+        jLabel22.setText("Table Name:");
+
+        createTableName.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTableNameActionPerformed(evt);
+            }
+        });
+
+        jScrollPane2.setViewportView(createTableStatement);
+
+        jLabel23.setText("Statement Builder");
+
+        createTableExecute.setText("Execute");
+        createTableExecute.setEnabled(false);
+        createTableExecute.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTableExecuteActionPerformed(evt);
+            }
+        });
+
+        createTableAddName.setText("Add");
+        createTableAddName.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTableAddNameActionPerformed(evt);
+            }
+        });
+
+        jLabel24.setText("Column Name:");
+
+        jLabel25.setText("Data Type:");
+
+        createTableDataTypes.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        createTableDataTypes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTableDataTypesActionPerformed(evt);
+            }
+        });
+
+        jLabel26.setText("Constraints:");
+
+        createTableAddColumn.setText("Add");
+        createTableAddColumn.setEnabled(false);
+        createTableAddColumn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTableAddColumnActionPerformed(evt);
+            }
+        });
+
+        jLabel27.setText("Debug console");
+
+        jScrollPane6.setViewportView(createTableDebugPane);
+
+        createTableDbNames.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel28.setText("Database:");
+
         javax.swing.GroupLayout createTableDialogLayout = new javax.swing.GroupLayout(createTableDialog.getContentPane());
         createTableDialog.getContentPane().setLayout(createTableDialogLayout);
         createTableDialogLayout.setHorizontalGroup(
             createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(createTableDialogLayout.createSequentialGroup()
+                .addComponent(jLabel23)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jScrollPane2)
+            .addGroup(createTableDialogLayout.createSequentialGroup()
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(createTableDialogLayout.createSequentialGroup()
+                        .addComponent(jLabel27)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(createTableExecute))
+                    .addGroup(createTableDialogLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jSeparator1)
+                            .addGroup(createTableDialogLayout.createSequentialGroup()
+                                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel24)
+                                    .addComponent(jLabel25))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(createTableDataTypes, javax.swing.GroupLayout.PREFERRED_SIZE, 133, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(createTableColumnName, javax.swing.GroupLayout.PREFERRED_SIZE, 133, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGroup(createTableDialogLayout.createSequentialGroup()
+                                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel22)
+                                    .addComponent(jLabel28))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30, Short.MAX_VALUE)
+                                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(createTableDbNames, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(createTableName, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(35, 35, 35)
+                                .addComponent(createTableAddName)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 168, Short.MAX_VALUE))
+                            .addGroup(createTableDialogLayout.createSequentialGroup()
+                                .addComponent(jLabel26)
+                                .addGap(31, 31, 31)
+                                .addComponent(createTableExtra))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, createTableDialogLayout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(createTableAddColumn)))))
+                .addContainerGap())
+            .addComponent(jScrollPane6)
         );
         createTableDialogLayout.setVerticalGroup(
             createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(createTableDialogLayout.createSequentialGroup()
+                .addGap(19, 19, 19)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel22)
+                    .addComponent(createTableName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(createTableDbNames, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel28)
+                    .addComponent(createTableAddName))
+                .addGap(18, 18, 18)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel24)
+                    .addComponent(createTableColumnName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel25)
+                    .addComponent(createTableDataTypes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel26)
+                    .addComponent(createTableExtra, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(createTableAddColumn)
+                .addGap(5, 5, 5)
+                .addComponent(jLabel23)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(createTableExecute)
+                    .addComponent(jLabel27))
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -1292,6 +1446,14 @@ public class MainApplication extends javax.swing.JFrame {
         });
         jMenu3.add(createDbMenuItem);
 
+        createTblMenuItem.setText("Create Table");
+        createTblMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createTblMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu3.add(createTblMenuItem);
+
         dropDbMenuItem.setText("Drop DB");
         dropDbMenuItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1299,10 +1461,6 @@ public class MainApplication extends javax.swing.JFrame {
             }
         });
         jMenu3.add(dropDbMenuItem);
-
-        createTblMenuItem.setText("Create Table");
-        createTblMenuItem.setEnabled(false);
-        jMenu3.add(createTblMenuItem);
 
         dropTblMenuItem.setText("Drop Table");
         dropTblMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -1468,6 +1626,7 @@ public class MainApplication extends javax.swing.JFrame {
                                     case DONE:
                                         loadingDialog.setVisible(false);
 //                                        worker1 = null;
+//                                        selectedTable.updateUI();
                                         break;
                                 }
                                 break;
@@ -1926,6 +2085,92 @@ public class MainApplication extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_jMenu3ActionPerformed
 
+    private void createTableNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableNameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_createTableNameActionPerformed
+
+    private void createTableExecuteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableExecuteActionPerformed
+        try {
+            // TODO add your handling code here:
+            Statement query = conn.createStatement();
+            query.execute("USE " + createTableDbNames.getSelectedItem().toString() + ";");
+            query.execute(createTableStatement.getText());
+            createTableDebugPane.getStyledDocument().insertString(createTableDebugPane.getStyledDocument().getLength(), "Table Created\n", null);
+            query.close();
+            jMenu_refreshButton.doClick();
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            try {
+                createTableDebugPane.getStyledDocument().insertString(createTableDebugPane.getStyledDocument().getLength(), ex + "\n", null);
+            } catch (BadLocationException ex1) {
+                Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex1);
+            }
+        } catch (BadLocationException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_createTableExecuteActionPerformed
+
+    private void createTableAddNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableAddNameActionPerformed
+        // TODO add your handling code here:
+        createTableNameS = "CREATE TABLE " + createTableName.getText() + " (";
+        createTableQueryS = createTableNameS; 
+        createTableStatement.setText(createTableQueryS);
+        createTableAddColumn.setEnabled(true);
+    }//GEN-LAST:event_createTableAddNameActionPerformed
+
+    private void createTableAddColumnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableAddColumnActionPerformed
+        // TODO add your handling code here:
+        createTableColumnS = "";
+        if (createTableExecute.isEnabled()){
+            createTableColumnS += ", ";
+            createTableQueryS = createTableQueryS.substring(0, createTableQueryS.length()-2);
+        }
+        
+        createTableColumnS += createTableColumnName.getText() + " " + 
+                createTableDataTypes.getSelectedItem().toString() + " " +
+                createTableExtra.getText() + ");";
+        createTableQueryS += createTableColumnS;
+        
+        createTableStatement.setText(createTableQueryS);        
+        createTableExecute.setEnabled(true);
+    }//GEN-LAST:event_createTableAddColumnActionPerformed
+
+    private void createTblMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTblMenuItemActionPerformed
+        try {
+            // TODO add your handling code here:
+            createTableDataTypes.setModel(new DefaultComboBoxModel(types));
+            
+            ArrayList<String> dbNames = new ArrayList<>();
+            
+            DatabaseMetaData md = conn.getMetaData();
+            ResultSet db = md.getCatalogs();
+
+            while(db.next()) {
+                dbNames.add(db.getString(1));
+            }
+
+            createTableDbNames.setModel(new DefaultComboBoxModel(dbNames.toArray()));
+            
+            createTableAddColumn.setEnabled(false);
+            createTableExecute.setEnabled(false);
+            createTableNameS = "";
+            createTableColumnS = "";
+            createTableQueryS = "";
+            createTableName.setText("");
+            createTableColumnName.setText("");
+            createTableExtra.setText("");
+            
+            createTableDialog.setVisible(true);
+        } catch (SQLException ex) {
+            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_createTblMenuItemActionPerformed
+
+    private void createTableDataTypesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableDataTypesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_createTableDataTypesActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1963,7 +2208,17 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JButton createDbButton;
     private javax.swing.JMenuItem createDbMenuItem;
     private javax.swing.JTextField createDbText;
+    private javax.swing.JButton createTableAddColumn;
+    private javax.swing.JButton createTableAddName;
+    private javax.swing.JTextField createTableColumnName;
+    private javax.swing.JComboBox createTableDataTypes;
+    private javax.swing.JComboBox createTableDbNames;
+    private javax.swing.JTextPane createTableDebugPane;
     private javax.swing.JDialog createTableDialog;
+    private javax.swing.JButton createTableExecute;
+    private javax.swing.JTextField createTableExtra;
+    private javax.swing.JTextField createTableName;
+    private javax.swing.JEditorPane createTableStatement;
     private javax.swing.JMenuItem createTblMenuItem;
     private javax.swing.JTextPane customQueryDebugPane;
     private javax.swing.JMenuItem customQueryMenuItem;
@@ -2020,6 +2275,13 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
+    private javax.swing.JLabel jLabel22;
+    private javax.swing.JLabel jLabel23;
+    private javax.swing.JLabel jLabel24;
+    private javax.swing.JLabel jLabel25;
+    private javax.swing.JLabel jLabel26;
+    private javax.swing.JLabel jLabel27;
+    private javax.swing.JLabel jLabel28;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -2034,8 +2296,11 @@ public class MainApplication extends javax.swing.JFrame {
     private javax.swing.JMenuItem jMenu_exitButton;
     private javax.swing.JMenuItem jMenu_refreshButton;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
+    private javax.swing.JScrollPane jScrollPane6;
+    private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField linestart;
     private javax.swing.JTextField lineterm;
     private javax.swing.JDialog loadingDialog;
