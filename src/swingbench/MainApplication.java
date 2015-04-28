@@ -698,6 +698,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         fileChooser.setCurrentDirectory(new File("."));
 
+        queryDialog.setTitle("Create a custom query");
         queryDialog.setMinimumSize(new java.awt.Dimension(571, 500));
         queryDialog.setResizable(false);
 
@@ -766,6 +767,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
+        loadingDialog.setTitle("...");
         loadingDialog.setAutoRequestFocus(false);
         loadingDialog.setMinimumSize(new java.awt.Dimension(400, 120));
         loadingDialog.setResizable(false);
@@ -806,6 +808,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(13, Short.MAX_VALUE))
         );
 
+        importText.setTitle("Import from .txt");
         importText.setMinimumSize(new java.awt.Dimension(600, 330));
         importText.setResizable(false);
 
@@ -948,6 +951,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(40, Short.MAX_VALUE))
         );
 
+        fileNamerDialog.setTitle("Exporting");
         fileNamerDialog.setMinimumSize(new java.awt.Dimension(397, 295));
         fileNamerDialog.setResizable(false);
 
@@ -1048,6 +1052,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addGap(19, 19, 19))
         );
 
+        createDatabaseDialog.setTitle("Create a database");
         createDatabaseDialog.setMinimumSize(new java.awt.Dimension(278, 145));
         createDatabaseDialog.setResizable(false);
 
@@ -1087,6 +1092,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(50, Short.MAX_VALUE))
         );
 
+        dropDatabaseDialog.setTitle("Drop a database");
         dropDatabaseDialog.setMinimumSize(new java.awt.Dimension(278, 145));
         dropDatabaseDialog.setResizable(false);
 
@@ -1128,6 +1134,7 @@ public class MainApplication extends javax.swing.JFrame {
                 .addContainerGap(35, Short.MAX_VALUE))
         );
 
+        dropTableDialog.setTitle("Drop a table");
         dropTableDialog.setMinimumSize(new java.awt.Dimension(444, 209));
         dropTableDialog.setResizable(false);
 
@@ -1189,8 +1196,10 @@ public class MainApplication extends javax.swing.JFrame {
         );
 
         createTableDialog.setTitle("Create a new table.");
-        createTableDialog.setMinimumSize(new java.awt.Dimension(526, 540));
+        createTableDialog.setMinimumSize(new java.awt.Dimension(526, 570));
+        createTableDialog.setPreferredSize(new java.awt.Dimension(524, 585));
         createTableDialog.setResizable(false);
+        createTableDialog.setSize(new java.awt.Dimension(526, 585));
 
         jLabel22.setText("Table Name:");
 
@@ -1242,6 +1251,7 @@ public class MainApplication extends javax.swing.JFrame {
 
         jLabel27.setText("Debug console");
 
+        createTableDebugPane.setEditable(false);
         jScrollPane6.setViewportView(createTableDebugPane);
 
         createTableDbNames.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
@@ -1255,7 +1265,7 @@ public class MainApplication extends javax.swing.JFrame {
             .addGroup(createTableDialogLayout.createSequentialGroup()
                 .addComponent(jLabel23)
                 .addGap(0, 0, Short.MAX_VALUE))
-            .addComponent(jScrollPane2)
+            .addComponent(jScrollPane6)
             .addGroup(createTableDialogLayout.createSequentialGroup()
                 .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(createTableDialogLayout.createSequentialGroup()
@@ -1291,9 +1301,9 @@ public class MainApplication extends javax.swing.JFrame {
                                 .addComponent(createTableExtra))
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, createTableDialogLayout.createSequentialGroup()
                                 .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(createTableAddColumn)))))
+                                .addComponent(createTableAddColumn))))
+                    .addComponent(jScrollPane2))
                 .addContainerGap())
-            .addComponent(jScrollPane6)
         );
         createTableDialogLayout.setVerticalGroup(
             createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1325,9 +1335,9 @@ public class MainApplication extends javax.swing.JFrame {
                 .addComponent(createTableAddColumn)
                 .addGap(5, 5, 5)
                 .addComponent(jLabel23)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(7, 7, 7)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(18, 18, 18)
                 .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(createTableExecute, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jLabel27, javax.swing.GroupLayout.Alignment.TRAILING))
@@ -2132,7 +2142,7 @@ public class MainApplication extends javax.swing.JFrame {
 
     private void createTableAddNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTableAddNameActionPerformed
         // TODO add your handling code here:
-        createTableNameS = "CREATE TABLE " + createTableName.getText() + " (";
+        createTableNameS = "CREATE TABLE '" + createTableName.getText() + "' (";
         createTableQueryS = createTableNameS; 
         createTableStatement.setText(createTableQueryS);
         createTableAddColumn.setEnabled(true);
@@ -2146,7 +2156,7 @@ public class MainApplication extends javax.swing.JFrame {
             createTableQueryS = createTableQueryS.substring(0, createTableQueryS.length()-2);
         }
         
-        createTableColumnS += createTableColumnName.getText() + " " + 
+        createTableColumnS += "'" + createTableColumnName.getText() + "' " + 
                 createTableDataTypes.getSelectedItem().toString() + " " +
                 createTableExtra.getText() + ");";
         createTableQueryS += createTableColumnS;
