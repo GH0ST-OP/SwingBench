@@ -1,5 +1,8 @@
 SwingBench
 
+Authors: Matthew Monteleone 
+	 Justin Doonan
+
 Prerequisites:
 Mysql server (tested 5.1+)
 JRE 7+
