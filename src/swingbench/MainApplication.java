@@ -107,8 +107,6 @@ public class MainApplication extends javax.swing.JFrame {
                     System.out.println("null value found");
                 }
             }
-
-            stmt.close();
             return progress;
         }
 
@@ -120,6 +118,8 @@ public class MainApplication extends javax.swing.JFrame {
             int size = rs.getRow() + 1;
             int counter = 0;
             rs.beforeFirst();
+            
+            System.out.println(size);
 
             // names of columns
             Vector<String> columnNames = new Vector<>();
@@ -1174,7 +1174,6 @@ public class MainApplication extends javax.swing.JFrame {
 
         createTableDialog.setTitle("Create a new table.");
         createTableDialog.setMinimumSize(new java.awt.Dimension(526, 540));
-        createTableDialog.setPreferredSize(new java.awt.Dimension(526, 540));
         createTableDialog.setResizable(false);
 
         jLabel22.setText("Table Name:");
@@ -1313,9 +1312,9 @@ public class MainApplication extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(createTableExecute)
-                    .addComponent(jLabel27))
+                .addGroup(createTableDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(createTableExecute, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel27, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
