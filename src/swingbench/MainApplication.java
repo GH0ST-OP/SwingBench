@@ -87,15 +87,21 @@ public class MainApplication extends javax.swing.JFrame {
         protected Integer doInBackground() throws Exception {
             publish("Begin populating the table");
             Statement stmt = conn.createStatement();
-            ResultSet rs;
+            ResultSet rs = null;
+            
+            System.out.println("Begin creating table");
 
             if (query == ""){
                 rs = stmt.executeQuery("select * from " + db + "." + tbl + ";");
             } else {
                 rs = stmt.executeQuery(query);
             }
+            
+            System.out.println("executed query");
 
             table.setModel(buildTableModel(rs));
+            
+            System.out.println("built table model");
 
 
             //Adjust Columns
@@ -111,6 +117,8 @@ public class MainApplication extends javax.swing.JFrame {
         }
 
         private DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+            
+            System.out.println("building table model");
 
             ResultSetMetaData metaData = rs.getMetaData();
 
@@ -1606,6 +1614,8 @@ public class MainApplication extends javax.swing.JFrame {
                     long start_time = System.nanoTime();
                     String db = selPath.getPath()[1].toString();
                     String tbl = selPath.getPath()[2].toString();
+                    
+                    System.out.println("Create Table Worker");
 
                     worker1 = new CreateTableWorker(selectedTable,db,tbl,"");
                     worker1.addPropertyChangeListener((PropertyChangeEvent event) -> {
@@ -1624,13 +1634,15 @@ public class MainApplication extends javax.swing.JFrame {
                                         break;
                                     case DONE:
                                         loadingDialog.setVisible(false);
-//                                        worker1 = null;
+                                        worker1 = null;
 //                                        selectedTable.updateUI();
                                         break;
                                 }
                                 break;
                         }
                     });
+                    
+                    System.out.println("Executing");
                     worker1.execute();
 
                     long end_time = System.nanoTime();
