@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import com.opencsv.*;
+import java.awt.Image;
 import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.sql.*;
@@ -25,6 +26,7 @@ import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JTable;
 import javax.swing.JTree;
@@ -173,6 +175,10 @@ public class MainApplication extends javax.swing.JFrame {
      */
     public MainApplication() {
         initComponents();
+        
+        Image i = new ImageIcon(ClassLoader.getSystemResource("com/swingbench/logo.png")).getImage();
+        setIconImage(i);
+        
         prefs = Preferences.userRoot().node(this.getClass().getName());
 
         checkForPref();
