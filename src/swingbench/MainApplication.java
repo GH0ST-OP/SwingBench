@@ -129,6 +129,11 @@ public class MainApplication extends javax.swing.JFrame {
             int counter = 0;
             rs.beforeFirst();
             
+            if(size == 1){
+                return (DefaultTableModel) table.getModel();
+            }
+            
+            
             System.out.println(size);
 
             // names of columns
@@ -175,9 +180,6 @@ public class MainApplication extends javax.swing.JFrame {
      */
     public MainApplication() {
         initComponents();
-        
-        Image i = new ImageIcon(ClassLoader.getSystemResource("com/swingbench/logo.png")).getImage();
-        setIconImage(i);
         
         prefs = Preferences.userRoot().node(this.getClass().getName());
 
