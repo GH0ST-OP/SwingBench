@@ -1,15 +1,21 @@
-SwingBench
+#SwingBench
+A MySQL manager built in Java!
 
-Authors: Matthew Monteleone 
-	 Justin Doonan
+##Authors
+Matthew Monteleone
+Justin Doonan
 
-Prerequisites:
+##Prerequisites:
 Mysql server (tested 5.1+)
 JRE 7+
 
-How to run:
-1. Open SwingBench.jar in dist folder
+##Usage
+1. Download latest release.
+2. Unzip contents.
+3. Open SwingBench.jar
 
-If all else fails, open project in netbeans, build and run project.
+##Source
+This project was built using NetBeans.
 
-The write up is in the root directory of this repo, titled 'SwingBench.docx'
+##Other
+Database course writeup in SwingBench.docx
