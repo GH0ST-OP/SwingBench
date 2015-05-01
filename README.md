@@ -2,11 +2,11 @@
 A MySQL manager built in Java!
 
 ##Authors
-Matthew Monteleone
+Matthew Monteleone  
 Justin Doonan
 
 ##Prerequisites:
-Mysql server (tested 5.1+)
+Mysql server (tested 5.1+)  
 JRE 7+
 
 ##Usage
